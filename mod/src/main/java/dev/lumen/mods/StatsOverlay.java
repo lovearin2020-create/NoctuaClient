@@ -45,6 +45,7 @@ public class StatsOverlay extends HudModule {
     private final Setting.Text urchinKey = text("Urchin API Key", "", 80);
     private final Setting.Text hypixelKey = text("Hypixel API Key", "", 80);
     private final Setting.Mode show = mode("Show", "Always", "Always", "Tab Held", "Before Game Only");
+    private final Setting.Mode sortBy = mode("Sort By", "Threat", "Threat", "Stars", "FKDR", "WLR", "BBLR", "Winstreak", "Finals", "Monthly FKDR", "Name");
     private final Setting.Bool onlyBedwars = bool("Only In Bed Wars", true);
     private final Setting.Bool denick = bool("Denick By Skin", true);
     private final Setting.Bool warn = bool("Threat Warnings", true);
@@ -99,10 +100,27 @@ public class StatsOverlay extends HudModule {
             out.add(r);
             if (warn.on() && (pregame || !onlyBedwars.on())) warn(r);
         }
-        Collections.sort(out, new Comparator<Row>() { public int compare(Row a, Row b) { return Double.compare(b.e.threat(), a.e.threat()); } });
+        Collections.sort(out, new Comparator<Row>() { public int compare(Row a, Row b) {
+            if (sortBy.is("Name")) return a.name.compareToIgnoreCase(b.name);
+            int c = Double.compare(key(b.e), key(a.e)); // highest first; players without that number yet go last
+            return c != 0 ? c : a.name.compareToIgnoreCase(b.name);
+        } });
         while (out.size() > maxRows.i()) out.remove(out.size() - 1);
         noSource = none;
         rows = out;
+    }
+
+    /** The number the list is ordered by. */
+    private double key(Entry e) {
+        if (sortBy.is("Threat")) return e.threat();
+        if (sortBy.is("Monthly FKDR")) return e.mfkdr;
+        if (e.state != StatsService.OK) return -1;
+        if (sortBy.is("Stars")) return e.star;
+        if (sortBy.is("FKDR")) return e.fkdr;
+        if (sortBy.is("WLR")) return e.wlr;
+        if (sortBy.is("BBLR")) return e.bblr;
+        if (sortBy.is("Winstreak")) return e.winstreak;
+        return e.finals;
     }
 
     private void readSidebar() {

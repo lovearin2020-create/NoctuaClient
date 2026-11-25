@@ -24,7 +24,7 @@ public final class SimpleHuds {
     }
 
     public static TextHud clock() {
-        final SimpleDateFormat fmt = new SimpleDateFormat("hh:mm a");
+        final SimpleDateFormat fmt = new SimpleDateFormat("hh:mm a", java.util.Locale.ENGLISH); // AM/PM in letters Noctua's own font has, whatever the system language
         return new TextHud("Clock", "Your local time.", START, 4, START, 98) {
             protected String text(boolean e) { return fmt.format(new Date()); }
         };
