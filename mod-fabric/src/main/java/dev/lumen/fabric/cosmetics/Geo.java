@@ -19,7 +19,7 @@ final class Geo {
         if (!whiteReady) {
             NativeImage img = new NativeImage(1, 1, false);
             img.setPixel(0, 0, 0xFFFFFFFF);
-            Minecraft.getInstance().getTextureManager().register(WHITE, new DynamicTexture(() -> "Lumen white", img));
+            Minecraft.getInstance().getTextureManager().register(WHITE, new DynamicTexture(() -> "Noctua white", img));
             whiteReady = true;
         }
         return WHITE;

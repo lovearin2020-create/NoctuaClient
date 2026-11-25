@@ -50,6 +50,6 @@ public class Screenshots extends Module {
         if (a.length != 3 || !a[1].equals("delete") || !a[2].matches("[\\w.\\-]+\\.png")) return;
         File f = new File(dir(), a[2]);
         String msg = !f.isFile() ? "That screenshot no longer exists." : f.delete() ? "Deleted " + a[2] + "." : "Could not delete " + a[2] + ".";
-        mc.gui.hud.getChat().addClientSystemMessage(Component.literal("[Lumen] " + msg).withStyle(ChatFormatting.GRAY));
+        mc.gui.hud.getChat().addClientSystemMessage(Component.literal("[Noctua] " + msg).withStyle(ChatFormatting.GRAY));
     }
 }

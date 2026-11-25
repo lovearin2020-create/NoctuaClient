@@ -57,7 +57,7 @@ public final class StatsService {
 
     private static final ConcurrentHashMap<UUID, Entry> CACHE = new ConcurrentHashMap<UUID, Entry>();
     private static final ExecutorService POOL = new ThreadPoolExecutor(8, 8, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
-        public Thread newThread(Runnable r) { Thread t = new Thread(r, "Lumen stats"); t.setDaemon(true); return t; }
+        public Thread newThread(Runnable r) { Thread t = new Thread(r, "Noctua stats"); t.setDaemon(true); return t; }
     });
     static { ((ThreadPoolExecutor) POOL).allowCoreThreadTimeOut(true); }
     /** The Lumen server has no stats function (or refused): not asked again for a while. */
@@ -202,7 +202,7 @@ public final class StatsService {
         try {
             c.setConnectTimeout(4000);
             c.setReadTimeout(7000);
-            c.setRequestProperty("User-Agent", "LumenClient");
+            c.setRequestProperty("User-Agent", "NoctuaClient");
             c.setRequestProperty("Accept", "application/json");
             if (header != null) c.setRequestProperty(header, value); else if (url.startsWith(Api.function(""))) Api.sign(c);
             int code = c.getResponseCode();

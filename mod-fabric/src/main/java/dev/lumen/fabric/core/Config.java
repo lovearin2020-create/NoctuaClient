@@ -142,7 +142,7 @@ public final class Config {
                 java.nio.file.Files.move(tmp.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (Throwable t) {
-            System.err.println("[Lumen] Could not save config: " + t);
+            System.err.println("[Noctua] Could not save config: " + t);
         }
     }
 
@@ -162,7 +162,7 @@ public final class Config {
                 Reader r = new InputStreamReader(new FileInputStream(f), "UTF-8");
                 try { root = JsonParser.parseReader(r).getAsJsonObject(); } finally { r.close(); }
             } catch (Throwable t) {
-                System.err.println("[Lumen] Config unreadable, using defaults: " + t);
+                System.err.println("[Noctua] Config unreadable, using defaults: " + t);
             }
         }
         try {

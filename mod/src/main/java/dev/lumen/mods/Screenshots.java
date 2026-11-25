@@ -54,7 +54,7 @@ public class Screenshots extends Module {
     }
 
     static void say(String s) {
-        if (mc.thePlayer != null) mc.thePlayer.addChatMessage(new ChatComponentText("§7[Lumen] " + s));
+        if (mc.thePlayer != null) mc.thePlayer.addChatMessage(new ChatComponentText("§7[Noctua] " + s));
     }
 
     static void copy(final File f) {
@@ -75,7 +75,7 @@ public class Screenshots extends Module {
                 final String msg = result;
                 mc.addScheduledTask(new Runnable() { public void run() { say(msg); } });
             }
-        }, "Lumen-ScreenshotCopy").start();
+        }, "Noctua-ScreenshotCopy").start();
     }
 
     /** Client-side command behind the chat buttons. It only ever touches files inside the screenshots folder. */

@@ -42,7 +42,7 @@ public class CrashPatcher extends Module {
                 file = new File(dir, "crash-" + new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss").format(new Date()) + "-client-recovered.txt");
                 report.saveToFile(file);
             } catch (Throwable ignored) {}
-            System.err.println("[Lumen] Recovered from a crash:");
+            System.err.println("[Noctua] Recovered from a crash:");
             t.printStackTrace();
             resetRenderState();
             try {

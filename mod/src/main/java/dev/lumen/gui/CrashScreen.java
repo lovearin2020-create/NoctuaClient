@@ -34,7 +34,7 @@ public class CrashScreen extends GuiScreen {
         R.rect(0, 0, width, height, 0xFF0F1116);
         float cx = width / 2f;
         int w = Math.min(420, width - 40), x = (int) (cx - w / 2f), y = height / 2 - 110;
-        Fnt.centerB("Lumen recovered from a crash", cx, y, 15, 0xFFF2F4F8);
+        Fnt.centerB("Noctua recovered from a crash", cx, y, 15, 0xFFF2F4F8);
         Fnt.center("The game hit an error but did not have to close. You were disconnected to keep things stable.", cx, y + 24, 8, 0xFF8891A5);
         R.roundRect(x, y + 42, w, 118, 6, 0xFF1A1D25);
         for (int i = 0; i < lines.size(); i++) {

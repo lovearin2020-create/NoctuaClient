@@ -42,7 +42,7 @@ public class Ping extends TextHud {
             } finally {
                 probing = false;
             }
-        }, "Lumen ping");
+        }, "Noctua ping");
         t.setDaemon(true);
         t.start();
     }

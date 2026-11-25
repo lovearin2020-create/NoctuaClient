@@ -16,7 +16,7 @@ public final class Client {
     public static final Setting.Bool blur = new Setting.Bool("Menu Blur", true);
     public static final Setting.Num blurStrength = new Setting.Num("Blur Strength", 5, 1, 10, 1);
     public static final Setting.Mode font = new Setting.Mode("Font", "Smooth", "Smooth", "Minecraft");
-    public static final Setting.Bool nameIcon = new Setting.Bool("Lumen Icon Next To Names", true);
+    public static final Setting.Bool nameIcon = new Setting.Bool("Noctua Icon Next To Names", true);
     public static final Setting.Key keyMenu = new Setting.Key("Key: Open This Menu", "RSHIFT");
     public static final Setting.Key keyZoom = new Setting.Key("Key: Zoom (hold)", "C");
     public static final Setting.Key keyQuickPlay = new Setting.Key("Key: Quick Play", "G");

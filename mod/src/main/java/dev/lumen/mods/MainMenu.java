@@ -8,7 +8,7 @@ import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 public class MainMenu extends Module {
-    public MainMenu() { super("Main Menu", "Animated Lumen title screen.", Category.VISUAL); }
+    public MainMenu() { super("Main Menu", "Animated Noctua title screen.", Category.VISUAL); }
 
     /** Set by the "Accounts" button: the next title screen is the vanilla one, where other mods (Essential) put their buttons. */
     public static boolean vanillaOnce;

@@ -129,7 +129,7 @@ public class StatsOverlay extends HudModule {
         if (why == null) { if (e.state == StatsService.OK) warned.add(e.id); return; }
         warned.add(e.id);
         String who = r.name + (e.realName != null ? " §7(" + e.realName + ")" : "");
-        mc.thePlayer.addChatMessage(new ChatComponentText("§8[§bLumen§8] §cThreat: §f" + who + " §8- " + why));
+        mc.thePlayer.addChatMessage(new ChatComponentText("§8[§bNoctua§8] §cThreat: §f" + who + " §8- " + why));
         mc.thePlayer.playSound("note.pling", 0.7f, 1.6f);
     }
 
@@ -267,7 +267,7 @@ public class StatsOverlay extends HudModule {
     private List<Row> sample() {
         List<Row> out = new ArrayList<Row>();
         Object[][] d = {{"Technoblade", 0xFFFF5555, 1247, 14.82, 9.1, 6.4, 37, "sniper"}, {"xNestorio", 0xFF5555FF, 612, 6.31, 3.2, 2.9, 8, ""},
-                {"Lumen_User", 0xFF55FF55, 284, 2.47, 1.3, 1.6, 2, ""}, {"Steve", 0xFFFFFF55, 37, 0.62, 0.4, 0.5, 0, ""}};
+                {"Noctua_User", 0xFF55FF55, 284, 2.47, 1.3, 1.6, 2, ""}, {"Steve", 0xFFFFFF55, 37, 0.62, 0.4, 0.5, 0, ""}};
         for (Object[] o : d) {
             Row r = new Row(); r.name = (String) o[0]; r.color = (Integer) o[1];
             Entry e = StatsService.sample(r.name, (Integer) o[2], (Double) o[3], (Double) o[4], (Double) o[5], (Integer) o[6], (String) o[7]);

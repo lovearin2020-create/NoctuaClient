@@ -34,7 +34,7 @@ final class Api {
             c.setRequestProperty("apikey", KEY);
             c.setRequestProperty("Authorization", "Bearer " + KEY);
             c.setRequestProperty("Content-Type", "application/json");
-            c.setRequestProperty("User-Agent", "LumenClient");
+            c.setRequestProperty("User-Agent", "NoctuaClient");
             OutputStream out = c.getOutputStream();
             out.write(args.toString().getBytes(UTF8));
             out.close();

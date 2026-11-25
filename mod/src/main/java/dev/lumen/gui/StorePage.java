@@ -19,7 +19,7 @@ import java.util.Locale;
 /** The Store tab of the menu: cosmetics by slot, Lumen+ and how to get Rubies. Drawn inside the menu's content area. */
 final class StorePage {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private static final String[] TABS = {"Capes", "Wings", "Hats", "Shields", "Owned", "Lumen+", "Rubies"};
+    private static final String[] TABS = {"Capes", "Wings", "Hats", "Shields", "Owned", "Noctua+", "Rubies"};
     private static final String[] SLOTS = {"cape", "wings", "hat", "shield"};
     private static final int OWNED = 4, PLUS = 5;
     private static final int TEXT = 0xFFF2F4F8, MUTED = 0xFF8891A5, GREEN = 0xFF2FBF71, RUBY = 0xFFFF3B55, GOLD = 0xFFF5C542;
@@ -91,7 +91,7 @@ final class StorePage {
 
         if (Online.status != Online.Status.READY) {
             boolean failed = Online.status == Online.Status.FAILED;
-            Fnt.center(failed ? "The store is not available" : "Connecting to the Lumen servers...", x0 + w / 2f, by + bh / 2f - 22, 10, TEXT);
+            Fnt.center(failed ? "The store is not available" : "Connecting to the Noctua servers...", x0 + w / 2f, by + bh / 2f - 22, 10, TEXT);
             if (failed) {
                 R.mcText(Online.notice, x0 + w / 2f - mc.fontRendererObj.getStringWidth(Online.notice) / 2f, by + bh / 2f - 4, MUTED, false);
                 boolean hov = R.in(mx, my, x0 + w / 2f - 40, by + bh / 2f + 14, 80, 18);
@@ -211,15 +211,15 @@ final class StorePage {
 
     private static void drawPlus(int mx, int my, int x0, int by, int w, int bh) {
         R.roundRect(x0, by, w, 60, Theme.radius, Theme.card);
-        Fnt.draw("Lumen+", x0 + 12, by + 9, 14, Fnt.BOLD, 0, GOLD, 0xFFFF8A3D);
+        Fnt.draw("Noctua+", x0 + 12, by + 9, 14, Fnt.BOLD, 0, GOLD, 0xFFFF8A3D);
         String status = Online.plus ? "Active until " + (Online.plusUntil.length() >= 10 ? Online.plusUntil.substring(0, 10) : Online.plusUntil) : "Not a member";
         Fnt.draw(status, x0 + 12, by + 30, 8, Online.plus ? GREEN : MUTED);
-        Fnt.draw("Coloured name for every Lumen user  -  " + num(Online.dailyRubies) + " Rubies every day", x0 + 12, by + 43, 8, MUTED);
+        Fnt.draw("Coloured name for every Noctua user  -  " + num(Online.dailyRubies) + " Rubies every day", x0 + 12, by + 43, 8, MUTED);
 
         float y = by + 68;
         if (!Online.plus) {
             R.roundRect(x0, y, w, 52, Theme.radius, Theme.card);
-            Fnt.draw("Lumen+ is given out by the admin.", x0 + 12, y + 9, 9, TEXT);
+            Fnt.draw("Noctua+ is given out by the admin.", x0 + 12, y + 9, 9, TEXT);
             if (!Online.plusPriceText.isEmpty()) R.mcText(Online.plusPriceText, x0 + 12, y + 24, GOLD, false);
             R.mcText(Online.contact.isEmpty() ? "Contact the admin to join." : "Contact: " + Online.contact, x0 + 12, y + 37, MUTED, false);
             return;
@@ -244,7 +244,7 @@ final class StorePage {
             else R.roundRect(sx, sy, 14, 14, 3, 0xFF000000 | COLOR_RGB[i]);
             if (sel || h) R.roundOutline(sx - 1.5f, sy - 1.5f, 17, 17, 4, 1.4f, sel ? 0xFFFFFFFF : MUTED);
         }
-        Fnt.draw("Shown on your name tag, in chat and in the tab list for players using Lumen.", x0 + 12, y + 47, 7, MUTED);
+        Fnt.draw("Shown on your name tag, in chat and in the tab list for players using Noctua.", x0 + 12, y + 47, 7, MUTED);
     }
 
     private static void drawRubies(int x0, int by, int w, int bh) {

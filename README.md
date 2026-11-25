@@ -1,8 +1,10 @@
-# Lumen Client
+# Noctua Client
 
-> **Status:** the launcher in `launcher/` is no longer developed. Lumen is now published as mods only:
+> **Noctua** (formerly Lumen) is a legit PvP client published as mods only:
 > `mod/` (Minecraft 1.8.9, Forge), `mod-fabric/` (Minecraft 26.2 / 26.3, Fabric) and ready-built jars in `dist/`.
 > Put the jar for your version in the game's `mods` folder; press **Right Shift** in game for the menu.
+>
+> The launcher in `launcher/` is no longer developed. The text below describes it as it was, under its old name.
 
 A personal, non-commercial launcher and PvP client for **Minecraft: Java Edition**.
 

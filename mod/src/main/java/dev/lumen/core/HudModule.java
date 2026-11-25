@@ -19,7 +19,7 @@ public abstract class HudModule extends Module {
     protected HudModule(String name, String description, Category category, int ax, float ox, int ay, float oy) {
         super(name, description, category);
         this.ax = ax; this.ox = ox; this.ay = ay; this.oy = oy;
-        if (hasLumenStyle()) { lumenHud = new Setting.Bool("Lumen HUD", true); settings.add(lumenHud); }
+        if (hasLumenStyle()) { lumenHud = new Setting.Bool("Noctua HUD", true); settings.add(lumenHud); }
     }
 
     /** The switch between the Lumen look (soft dark panel, Lumen's own letters) and the classic one. */

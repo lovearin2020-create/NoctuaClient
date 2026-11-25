@@ -35,7 +35,7 @@ public abstract class Module {
             if (e) { MinecraftForge.EVENT_BUS.register(this); onEnable(); }
             else { MinecraftForge.EVENT_BUS.unregister(this); onDisable(); }
         } catch (Throwable t) {
-            System.err.println("[Lumen] Failed to toggle " + name + ": " + t);
+            System.err.println("[Noctua] Failed to toggle " + name + ": " + t);
         }
     }
 

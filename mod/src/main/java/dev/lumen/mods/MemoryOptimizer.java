@@ -50,9 +50,9 @@ public class MemoryOptimizer extends Module {
                     for (EnumFacing face : EnumFacing.values()) shared += intern(model.getFaceQuads(face), f, pool);
                 } catch (Throwable ignored) {}
             }
-            System.out.println("[Lumen] Memory Optimizer shared " + shared + " duplicate model arrays (" + pool.size() + " unique).");
+            System.out.println("[Noctua] Memory Optimizer shared " + shared + " duplicate model arrays (" + pool.size() + " unique).");
         } catch (Throwable t) {
-            System.err.println("[Lumen] Memory Optimizer skipped: " + t);
+            System.err.println("[Noctua] Memory Optimizer skipped: " + t);
         }
     }
 

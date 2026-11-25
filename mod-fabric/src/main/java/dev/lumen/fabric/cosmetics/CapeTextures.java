@@ -53,10 +53,10 @@ public final class CapeTextures {
             NativeImage out = new NativeImage(img.getWidth(), img.getHeight(), false);
             for (int y = 0; y < img.getHeight(); y++) for (int x = 0; x < img.getWidth(); x++) out.setPixel(x, y, img.getRGB(x, y));
             Identifier made = Identifier.fromNamespaceAndPath("lumen", id);
-            Minecraft.getInstance().getTextureManager().register(made, new DynamicTexture(() -> "Lumen cape", out));
+            Minecraft.getInstance().getTextureManager().register(made, new DynamicTexture(() -> "Noctua cape", out));
             tex = made;
         } catch (Throwable t) {
-            System.err.println("[Lumen] Could not create the cape texture: " + t);
+            System.err.println("[Noctua] Could not create the cape texture: " + t);
         }
         textures.put(id, tex);
         return tex;

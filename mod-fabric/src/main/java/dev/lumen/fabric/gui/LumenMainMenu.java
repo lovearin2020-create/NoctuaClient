@@ -13,13 +13,13 @@ import net.minecraft.network.chat.Component;
 
 /** Animated title screen: aurora backdrop, logo that fades in, staggered buttons. */
 public class LumenMainMenu extends Screen {
-    private static final String[] LABELS = {"Singleplayer", "Multiplayer", "Lumen Settings", "Options", "Quit"};
+    private static final String[] LABELS = {"Singleplayer", "Multiplayer", "Noctua Settings", "Options", "Quit"};
     private static boolean introPlayed;
     private final long opened = System.currentTimeMillis();
     private final boolean intro = !introPlayed;
     private final float[] hover = new float[LABELS.length];
 
-    public LumenMainMenu() { super(Component.literal("Lumen Client")); introPlayed = true; }
+    public LumenMainMenu() { super(Component.literal("Noctua Client")); introPlayed = true; }
 
     @Override public boolean isPauseScreen() { return false; }
     @Override public boolean shouldCloseOnEsc() { return false; }
@@ -43,7 +43,7 @@ public class LumenMainMenu extends Screen {
 
         float e = ease(150, 900);
         float ly = logoY() + (1 - e) * 14;
-        Draw.uiCenterB("LUMEN", width / 2f, ly, 44, Draw.alpha(0xFFFFFFFF, e));
+        Draw.uiCenterB("NOCTUA", width / 2f, ly, 44, Draw.alpha(0xFFFFFFFF, e));
         String sub = "C L I E N T";
         float sw = Draw.uiWidth(sub, 10, true);
         float lineW = 34 * ease(500, 700);
@@ -66,7 +66,7 @@ public class LumenMainMenu extends Screen {
         }
 
         float f = ease(1100, 600);
-        Draw.ui("Lumen Client " + Lumen.VERSION + "  |  Minecraft " + SharedConstants.getCurrentVersion().name(), 6, height - 14, 8, Draw.alpha(0xFF9AA8C7, f));
+        Draw.ui("Noctua Client " + Lumen.VERSION + "  |  Minecraft " + SharedConstants.getCurrentVersion().name(), 6, height - 14, 8, Draw.alpha(0xFF9AA8C7, f));
         String c = "Copyright Mojang AB. Do not distribute!";
         Draw.ui(c, width - 6 - Draw.uiWidth(c, 8), height - 14, 8, Draw.alpha(0xFF9AA8C7, f));
         if (essential()) {

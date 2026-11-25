@@ -19,7 +19,7 @@ public class MemoryOptimizer extends Module {
         boolean in = mc.level != null;
         if (wasInWorld && !in && System.currentTimeMillis() - lastGc > 30000) {
             lastGc = System.currentTimeMillis();
-            Thread t = new Thread(System::gc, "Lumen memory release");
+            Thread t = new Thread(System::gc, "Noctua memory release");
             t.setDaemon(true);
             t.start();
         }

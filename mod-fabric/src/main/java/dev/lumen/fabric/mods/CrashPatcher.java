@@ -34,7 +34,7 @@ public class CrashPatcher extends Module {
                 file = new File(dir, "crash-" + new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss").format(new Date()) + "-client-recovered.txt");
                 java.nio.file.Files.writeString(file.toPath(), report.getFriendlyReport(net.minecraft.ReportType.CRASH));
             } catch (Throwable e) { file = null; }
-            System.err.println("[Lumen] Recovered from a crash:");
+            System.err.println("[Noctua] Recovered from a crash:");
             t.printStackTrace();
             try { if (mc.level != null) mc.level.disconnect(Component.literal("Client crashed")); } catch (Throwable ignored) {}
             try { mc.disconnectWithProgressScreen(); } catch (Throwable ignored) {}
@@ -60,7 +60,7 @@ public class CrashPatcher extends Module {
                 device.createCommandEncoder().submit();
                 surface.present();
             }
-        } catch (Throwable e) { System.err.println("[Lumen] Could not release the unfinished frame: " + e); }
+        } catch (Throwable e) { System.err.println("[Noctua] Could not release the unfinished frame: " + e); }
         try { com.mojang.blaze3d.systems.RenderSystem.getDynamicUniforms().reset(); } catch (Throwable ignored) {}
         try { mc.levelRenderer.endFrame(); } catch (Throwable ignored) {}
     }

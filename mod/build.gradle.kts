@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "dev.lumen"
-version = "2.6.1"
+version = "2.7.0"
 val modid = "lumen"
 
 java { toolchain.languageVersion.set(JavaLanguageVersion.of(8)) }
@@ -50,7 +50,7 @@ dependencies {
 tasks.withType(JavaCompile::class) { options.encoding = "UTF-8" }
 
 tasks.withType(Jar::class) {
-    archiveBaseName.set("LumenClient")
+    archiveBaseName.set("NoctuaClient")
     manifest.attributes.run {
         this["FMLCorePluginContainsFMLMod"] = "true"
         this["ForceLoadAsMod"] = "true"

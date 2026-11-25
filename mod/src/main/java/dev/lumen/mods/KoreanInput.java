@@ -117,7 +117,7 @@ public class KoreanInput extends Module {
             blockedHwnd = block ? h : 0;
         } catch (Throwable t) {
             imeFailed = true;
-            System.err.println("[Lumen] Could not change the Windows IME state: " + t);
+            System.err.println("[Noctua] Could not change the Windows IME state: " + t);
         }
     }
 

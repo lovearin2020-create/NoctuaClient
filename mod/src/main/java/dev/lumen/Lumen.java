@@ -26,7 +26,7 @@ import org.lwjgl.input.Keyboard;
 
 @Mod(modid = Lumen.MODID, name = Lumen.NAME, version = Lumen.VERSION, clientSideOnly = true, acceptedMinecraftVersions = "[1.8.9]")
 public class Lumen {
-    public static final String MODID = "lumen", NAME = "Lumen Client", VERSION = "2.6.1";
+    public static final String MODID = "lumen", NAME = "Noctua Client", VERSION = "2.7.0";
 
     public static ModuleManager modules;
 
@@ -62,7 +62,7 @@ public class Lumen {
         Config.save(); // make sure the file exists even if the game is closed abruptly
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             public void run() { Config.save(); }
-        }, "Lumen-ConfigSave"));
+        }, "Noctua-ConfigSave"));
     }
 
     @Mod.EventHandler
@@ -76,7 +76,7 @@ public class Lumen {
                 rp.addLayer(new dev.lumen.cosmetics.ShieldLayer(rp));
             }
         } catch (Throwable t) {
-            System.err.println("[Lumen] Cosmetics unavailable: " + t);
+            System.err.println("[Noctua] Cosmetics unavailable: " + t);
         }
     }
 

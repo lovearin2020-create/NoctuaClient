@@ -16,7 +16,7 @@ public class HudEditorScreen extends Screen {
     private HudModule dragging;
     private float offX, offY;
 
-    public HudEditorScreen() { super(Component.literal("Lumen HUD Editor")); }
+    public HudEditorScreen() { super(Component.literal("Noctua HUD Editor")); }
 
     @Override public boolean isPauseScreen() { return false; }
     @Override public void removed() { Config.save(); }

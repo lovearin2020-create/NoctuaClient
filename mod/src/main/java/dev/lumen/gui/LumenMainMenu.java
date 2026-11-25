@@ -15,7 +15,7 @@ import java.io.IOException;
 
 /** Animated title screen: aurora backdrop, logo that fades in, staggered buttons. */
 public class LumenMainMenu extends GuiScreen {
-    private static final String[] LABELS = {"Singleplayer", "Multiplayer", "Lumen Settings", "Options", "Forge Mods", "Quit"};
+    private static final String[] LABELS = {"Singleplayer", "Multiplayer", "Noctua Settings", "Options", "Forge Mods", "Quit"};
     private static boolean introPlayed;
     private final long opened = System.currentTimeMillis();
     private final boolean intro = !introPlayed;
@@ -44,7 +44,7 @@ public class LumenMainMenu extends GuiScreen {
         float e = ease(150, 900);
         float ly = logoY() + (1 - e) * 14;
         R.glow(width / 2f, ly + 26, 150, R.alpha(0x554C8DFF, e));
-        String logo = "LUMEN";
+        String logo = "NOCTUA";
         float sp = 6, lw = Fnt.width(logo, 44, Fnt.LOGO, sp);
         Fnt.draw(logo, width / 2f - lw / 2f, ly, 44, Fnt.LOGO, sp, R.alpha(0xFFFFFFFF, e), R.alpha(0xFF7FB2FF, e));
         String sub = "CLIENT";
@@ -70,7 +70,7 @@ public class LumenMainMenu extends GuiScreen {
         }
 
         float f = ease(1100, 600);
-        Fnt.draw("Lumen Client " + Lumen.VERSION + "  |  Minecraft 1.8.9", 6, height - 14, 8, R.alpha(0xFF9AA8C7, f));
+        Fnt.draw("Noctua Client " + Lumen.VERSION + "  |  Minecraft 1.8.9", 6, height - 14, 8, R.alpha(0xFF9AA8C7, f));
         String c = "Copyright Mojang AB. Do not distribute!";
         Fnt.draw(c, width - 6 - Fnt.width(c, 8), height - 14, 8, R.alpha(0xFF9AA8C7, f));
         if (essential()) {

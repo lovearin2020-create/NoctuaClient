@@ -5,5 +5,5 @@ import dev.lumen.fabric.core.Module;
 import dev.lumen.fabric.util.*;
 
 public class MenuBlur extends Module {
-    public MenuBlur() { super("Menu Blur", "Blurs the game behind the Lumen menu.", Category.VISUAL); hidden = true; }
+    public MenuBlur() { super("Menu Blur", "Blurs the game behind the Noctua menu.", Category.VISUAL); hidden = true; }
 }

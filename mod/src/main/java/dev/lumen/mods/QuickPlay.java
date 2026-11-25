@@ -22,7 +22,7 @@ public class QuickPlay extends Module {
 
     public void open() {
         if (mc.thePlayer == null) return;
-        if (!Util.onHypixel()) { mc.thePlayer.addChatMessage(new ChatComponentText("§7[Lumen] Quick Play only works on Hypixel.")); return; }
+        if (!Util.onHypixel()) { mc.thePlayer.addChatMessage(new ChatComponentText("§7[Noctua] Quick Play only works on Hypixel.")); return; }
         mc.displayGuiScreen(new QuickPlayScreen());
     }
 }

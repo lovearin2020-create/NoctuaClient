@@ -43,7 +43,7 @@ public class GameFont extends Module {
         InputStream in = GameFont.class.getResourceAsStream("/assets/lumen/fonts/pack/" + name + ".png");
         if (in == null) return null;
         SEEN.add(loc);
-        return new SimpleResource("Lumen", loc, in, null, null);
+        return new SimpleResource("Noctua", loc, in, null, null);
     }
 
     @SubscribeEvent
@@ -73,7 +73,7 @@ public class GameFont extends Module {
                 }
             }
         } catch (Throwable t) {
-            System.err.println("[Lumen] Could not switch the game font: " + t);
+            System.err.println("[Noctua] Could not switch the game font: " + t);
         }
     }
 }

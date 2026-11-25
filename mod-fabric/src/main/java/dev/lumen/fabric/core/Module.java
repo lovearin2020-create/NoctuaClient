@@ -31,7 +31,7 @@ public abstract class Module {
     public void setEnabled(boolean e) {
         if (e == enabled) return;
         enabled = e;
-        try { if (e) onEnable(); else onDisable(); } catch (Throwable t) { System.err.println("[Lumen] Failed to toggle " + name + ": " + t); }
+        try { if (e) onEnable(); else onDisable(); } catch (Throwable t) { System.err.println("[Noctua] Failed to toggle " + name + ": " + t); }
     }
 
     public void toggle() { setEnabled(!enabled); }

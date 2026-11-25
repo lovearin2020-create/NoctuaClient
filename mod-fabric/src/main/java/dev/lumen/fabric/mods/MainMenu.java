@@ -5,5 +5,5 @@ import dev.lumen.fabric.core.Module;
 import dev.lumen.fabric.util.*;
 
 public class MainMenu extends Module {
-    public MainMenu() { super("Main Menu", "Animated Lumen title screen.", Category.VISUAL); }
+    public MainMenu() { super("Main Menu", "Animated Noctua title screen.", Category.VISUAL); }
 }

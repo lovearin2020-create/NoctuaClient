@@ -48,7 +48,7 @@ public class ModMenuScreen extends Screen {
 
     private int px, py;
 
-    public ModMenuScreen() { super(Component.literal("Lumen Client")); }
+    public ModMenuScreen() { super(Component.literal("Noctua Client")); }
 
     @Override protected void init() { px = (width - W) / 2; py = (height - H) / 2; dev.lumen.fabric.compat.Compat.textInput(this, true); Client.sync(); Theme.apply(); }
     @Override public void removed() { dev.lumen.fabric.compat.Compat.textInput(this, false); StorePage.closed(); Config.save(); }
@@ -127,7 +127,7 @@ public class ModMenuScreen extends Screen {
     }
 
     private void drawSidebar(double mx, double my) {
-                Draw.uiB("LUMEN", px + 15, py + 12, 17, 0xFFFFFFFF);
+                Draw.uiB("NOCTUA", px + 15, py + 12, 17, 0xFFFFFFFF);
         Draw.uiB("C L I E N T", px + 16, py + 34, 7, Draw.ACCENT);
         String ver = "v" + Lumen.VERSION;
         Draw.ui(ver, px + SIDE - 12 - Draw.uiWidth(ver, 7), py + 35, 7, (Theme.glass ? 0xFFA9B1C4 : 0xFF5C6475));

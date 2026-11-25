@@ -17,7 +17,7 @@ public class CrashScreen extends Screen {
     private final List<String> lines = new ArrayList<>();
 
     public CrashScreen(Throwable cause, File file) {
-        super(Component.literal("Lumen crash recovery"));
+        super(Component.literal("Noctua crash recovery"));
         this.file = file;
         Throwable t = cause;
         while (t.getCause() != null && t.getCause() != t) t = t.getCause();
@@ -35,7 +35,7 @@ public class CrashScreen extends Screen {
         Draw.rect(0, 0, width, height, 0xFF0F1116);
         float cx = width / 2f;
         int w = Math.min(420, width - 40), x = (int) (cx - w / 2f), y = Math.max(8, height / 2 - 110);
-        Draw.uiCenterB("Lumen recovered from a crash", cx, y, 15, 0xFFF2F4F8);
+        Draw.uiCenterB("Noctua recovered from a crash", cx, y, 15, 0xFFF2F4F8);
         Draw.uiCenter("The game hit an error but did not have to close. You were disconnected to keep things stable.", cx, y + 24, 8, 0xFF8891A5);
         Draw.roundRect(x, y + 42, w, 118, 6, 0xFF1A1D25);
         for (int i = 0; i < lines.size(); i++) Draw.ui(Draw.fit(lines.get(i), 7, w - 16), x + 8, y + 49 + i * 11, 7, i == 0 ? 0xFFFF7B7B : 0xFFB3BACB);

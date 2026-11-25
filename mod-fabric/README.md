@@ -1,6 +1,6 @@
-# Lumen Client for Fabric (Minecraft 26.2 / 26.3)
+# Noctua Client for Fabric (Minecraft 26.2 / 26.3)
 
-All 55 Lumen mods for current Minecraft. Needs only Fabric Loader 0.17+ and Java 25; works alongside Sodium.
+All 55 Noctua mods for current Minecraft. Needs only Fabric Loader 0.17+ and Java 25; works alongside Sodium.
 Press **Right Shift** in game to open the mod menu.
 
 26.2 and 26.3 differ internally (rendering, input codes), so there is one jar per version:

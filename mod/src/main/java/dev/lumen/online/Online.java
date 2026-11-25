@@ -40,7 +40,7 @@ public final class Online {
 
     private static final Minecraft mc = Minecraft.getMinecraft();
     private static final ExecutorService worker = Executors.newSingleThreadExecutor(new ThreadFactory() {
-        public Thread newThread(Runnable r) { Thread t = new Thread(r, "Lumen-Online"); t.setDaemon(true); return t; }
+        public Thread newThread(Runnable r) { Thread t = new Thread(r, "Noctua-Online"); t.setDaemon(true); return t; }
     });
     private static final long STALE_MS = 90000, RETRY_MS = 60000;
 
@@ -174,7 +174,7 @@ public final class Online {
                 } catch (Api.Refused e) {
                     fail(message(e.getMessage()));
                 } catch (Throwable t) {
-                    fail("Could not reach the Lumen servers.");
+                    fail("Could not reach the Noctua servers.");
                 }
             }
         });
@@ -211,7 +211,7 @@ public final class Online {
                     if ("LUMEN_AUTH".equals(e.getMessage())) { status = Status.SIGNED_OUT; token = null; signIn(); }
                     else notice = message(e.getMessage());
                 } catch (Throwable t) {
-                    notice = "Could not reach the Lumen servers.";
+                    notice = "Could not reach the Noctua servers.";
                 } finally {
                     busy = false;
                 }
@@ -224,11 +224,11 @@ public final class Online {
         if ("LUMEN_ALREADY_OWNED".equals(code)) return "You already own this.";
         if ("LUMEN_NOT_OWNED".equals(code)) return "You do not own this.";
         if ("LUMEN_DAILY_UNAVAILABLE".equals(code)) return "Daily Rubies are not available right now.";
-        if ("LUMEN_PLUS_REQUIRED".equals(code)) return "This needs Lumen+.";
+        if ("LUMEN_PLUS_REQUIRED".equals(code)) return "This needs Noctua+.";
         if ("LUMEN_NOT_VERIFIED".equals(code)) return "Mojang could not confirm your account. Restart the game and try again.";
         if ("LUMEN_SLOW_DOWN".equals(code)) return "Too many attempts. Try again in a few minutes.";
         if ("LUMEN_NO_ITEM".equals(code)) return "That item is no longer sold.";
-        return "The Lumen servers answered: " + code;
+        return "The Noctua servers answered: " + code;
     }
 
     private static String str(JsonObject o, String k) { JsonElement e = o.get(k); return e == null || e.isJsonNull() ? "" : e.getAsString(); }

@@ -6,7 +6,7 @@ plugins {
 def mcv = project.minecraft_version
 def vdir = 'v' + mcv.replace('.', '')
 
-base { archivesName = 'LumenClient-fabric' }
+base { archivesName = 'NoctuaClient-fabric' }
 
 sourceSets {
 	main {
