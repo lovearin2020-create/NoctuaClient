@@ -132,7 +132,7 @@ public class ResourceCount extends HudModule {
     public void draw(boolean editing) {
         if (mc.player == null || text[0] == null) return;
         if (total == 0 && hideEmpty.on() && !editing) return;
-        if (background.on()) Draw.roundRect(0, 0, width(), height(), 3, 0x70000000);
+        if (background.on()) box(0, 0, width(), height());
         if (icons == null) icons = new ItemStack[]{new ItemStack(ITEMS[0]), new ItemStack(ITEMS[1]), new ItemStack(ITEMS[2]), new ItemStack(ITEMS[3])};
         for (int i = 0; i < 4; i++) {
             int x = vertical() ? 2 : 2 + i * cell(), y = vertical() ? 1 + i * 17 : 2;

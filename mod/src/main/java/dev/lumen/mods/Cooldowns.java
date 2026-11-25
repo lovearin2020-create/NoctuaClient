@@ -42,9 +42,9 @@ public class Cooldowns extends HudModule {
         if (lumen()) {
             if (background.on()) panel(0, 0, 72, 24);
             ArmorStatus.drawItem(ICON, 4, 4);
-            Fnt.drawB(String.format("%.1fs", left <= 0 ? pearl.value * 0.6 : left / 1000.0), 25, 4, 9, 0xFFFFFFFF);
-            R.roundRect(25, 17, 41, 2, 1, 0x30FFFFFF);
-            R.roundRect(25, 17, Math.max(2, 41 * f), 2, 1, color.get());
+            Fnt.drawB(String.format("%.1fs", left <= 0 ? pearl.value * 0.6 : left / 1000.0), 25, cap(5.9f, 9), 9, 0xFFFFFFFF); // time and bar together sit in the middle of the icon
+            R.roundRect(25, 16.1f, 41, 2, 1, 0x30FFFFFF);
+            R.roundRect(25, 16.1f, Math.max(2, 41 * f), 2, 1, color.get());
             return;
         }
         if (background.on()) R.roundRect(0, 0, 62, 20, 3, 0x70000000);

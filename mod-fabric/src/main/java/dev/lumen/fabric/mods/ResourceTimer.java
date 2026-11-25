@@ -105,7 +105,7 @@ public class ResourceTimer extends HudModule {
 
     public void draw(boolean editing) {
         if (!active && !editing) return;
-        if (background.on()) Draw.roundRect(0, 0, width(), 36, 3, 0x70000000);
+        if (background.on()) box(0, 0, width(), 36);
         long now = System.currentTimeMillis();
         for (int t = 0; t < 2; t++) {
             if (icons == null) icons = new ItemStack[]{new ItemStack(Items.DIAMOND), new ItemStack(Items.EMERALD)};

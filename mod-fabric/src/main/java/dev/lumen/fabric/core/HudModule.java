@@ -17,7 +17,29 @@ public abstract class HudModule extends Module {
     protected HudModule(String name, String description, Category category, int ax, float ox, int ay, float oy) {
         super(name, description, category);
         this.ax = ax; this.ox = ox; this.ay = ay; this.oy = oy;
+        if (hasLumenStyle()) { lumenHud = new Setting.Bool("Noctua HUD", true); settings.add(lumenHud); }
     }
+
+    /** The switch between the Noctua look (soft dark panel, Noctua's own letters) and the classic one. */
+    private Setting.Bool lumenHud;
+    /** True while the element paints the Noctua panel itself, so the optional one behind it is left out. */
+    protected boolean ownPanel() { return false; }
+    protected boolean panelOn() { return panel == null || panel.on(); }
+    /** How far below the given y the capitals of Noctua's letters start and end, as a share of the size. */
+    protected static final float CAP_TOP = 0f, CAP_MID = 0.38f; // measured from the drawn letters
+    /** The y that puts a line of letters in the middle of a box. */
+    protected static float mid(float top, float h, float size) { return top + h / 2f - CAP_MID * size; }
+    /** The y that puts the top of the capitals at this height. */
+    protected static float cap(float inkTop, float size) { return inkTop - CAP_TOP * size; }
+    /** Elements that only have one look say no. */
+    protected boolean hasLumenStyle() { return true; }
+    protected boolean lumen() { return lumenHud != null && lumenHud.on(); }
+    /** The Noctua panel: the one Direction HUD sits on. */
+    protected static void panel(float x, float y, float w, float h) {
+        Draw.roundRect(x, y, w, h, 6, 0x78000000);
+    }
+    /** The box behind an element, in whichever look is chosen. */
+    protected void box(float x, float y, float w, float h) { if (lumen()) panel(x, y, w, h); else Draw.roundRect(x, y, w, h, 3, 0x70000000); }
 
     /** Set by elements that had no box of their own: an optional panel behind them. */
     private Setting.Bool panel;
@@ -49,7 +71,7 @@ public abstract class HudModule extends Module {
 
     public void render(int sw, int sh, boolean editing) {
         Draw.push(Math.round(px(sw)), Math.round(py(sh)), scale);
-        if (panel != null && panel.on() && showing(editing)) Draw.roundRect(-3, -3, width() + 6, height() + 6, 3, 0x70000000);
+        if (panel != null && panel.on() && showing(editing) && !ownPanel()) box(-3, -3, width() + 6, height() + 6);
         try { draw(editing); } catch (Throwable ignored) {}
         Draw.pop();
     }

@@ -24,6 +24,10 @@ public abstract class HudModule extends Module {
 
     /** The switch between the Lumen look (soft dark panel, Lumen's own letters) and the classic one. */
     private Setting.Bool lumenHud;
+    /** True while the element paints the Noctua panel itself, so the optional one behind it is left out. */
+    protected boolean ownPanel() { return false; }
+    /** Whether the optional background is wanted (always, for elements without that option). */
+    protected boolean panelOn() { return panel == null || panel.on(); }
     /** Elements that only have one look say no. */
     protected boolean hasLumenStyle() { return true; }
     protected boolean lumen() { return lumenHud != null && lumenHud.on(); }
@@ -32,6 +36,10 @@ public abstract class HudModule extends Module {
         R.roundRect(x, y, w, h, 6, 0x78000000);
         R.gradient(x + 4, y + 1, w - 8, Math.min(9, h / 2), 0x14FFFFFF, 0x00FFFFFF);
     }
+    /** The y that puts a line of Noctua's letters (their capitals and digits) in the middle of a box. */
+    protected static float mid(float top, float h, float size) { return top + h / 2f - 0.68f * size; }
+    /** The y that puts the top of the capitals at this height. */
+    protected static float cap(float inkTop, float size) { return inkTop - 0.31f * size; }
     /** The box behind an element, in whichever look is chosen. */
     protected void box(float x, float y, float w, float h) { if (lumen()) panel(x, y, w, h); else R.roundRect(x, y, w, h, 3, 0x70000000); }
 
@@ -70,7 +78,7 @@ public abstract class HudModule extends Module {
         GlStateManager.pushMatrix();
         GlStateManager.translate(Math.round(px(sr)), Math.round(py(sr)), 0);
         GlStateManager.scale(scale, scale, 1);
-        if (panel != null && panel.on() && showing(editing)) box(-3, -3, width() + 6, height() + 6);
+        if (panel != null && panel.on() && showing(editing) && !ownPanel()) box(-3, -3, width() + 6, height() + 6);
         try { draw(editing); } catch (Throwable ignored) {}
         GlStateManager.popMatrix();
         R.reset();

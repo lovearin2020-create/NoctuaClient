@@ -16,6 +16,7 @@ public class BowCharge extends HudModule {
     public BowCharge() { super("Bow Charge", "Bow draw strength next to the crosshair.", CENTER, -20, CENTER, 12); optionalBackground(); }
     protected boolean showing(boolean editing) { return editing || (mc.player != null && mc.player.isUsingItem() && mc.player.getUseItem().getItem() instanceof BowItem); }
 
+    protected boolean hasLumenStyle() { return false; }
     public float width() { return 40; }
     public float height() { return percent.on() ? 14 : 4; }
 

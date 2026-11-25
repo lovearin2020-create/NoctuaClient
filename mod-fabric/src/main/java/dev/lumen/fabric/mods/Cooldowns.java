@@ -17,8 +17,8 @@ public class Cooldowns extends HudModule {
     private final Setting.Bool background = bool("Background", true);
     public Cooldowns() { super("Cooldowns", "Ender pearl cooldown timer.", CENTER, 20, CENTER, 24); }
 
-    public float width() { return 62; }
-    public float height() { return 20; }
+    public float width() { return lumen() ? 72 : 62; }
+    public float height() { return lumen() ? 24 : 20; }
 
     public void onTick() {
         boolean down = mc.gui.screen() == null && mc.options.keyUse.isDown();
@@ -34,6 +34,14 @@ public class Cooldowns extends HudModule {
         long left = until - System.currentTimeMillis();
         if (left <= 0 && !editing) return;
         float f = left <= 0 ? 0.6f : left / (float) Math.max(1, length);
+        if (lumen()) {
+            if (background.on()) panel(0, 0, 72, 24);
+            Draw.item(new ItemStack(Items.ENDER_PEARL), 4, 4, false);
+            Draw.uiB(String.format("%.1fs", left <= 0 ? pearl.value * 0.6 : left / 1000.0), 25, cap(5.9f, 9), 9, 0xFFFFFFFF);
+            Draw.roundRect(25, 16.1f, 41, 2, 1, 0x30FFFFFF);
+            Draw.roundRect(25, 16.1f, Math.max(2, 41 * f), 2, 1, color.get());
+            return;
+        }
         if (background.on()) Draw.roundRect(0, 0, 62, 20, 3, 0x70000000);
         Draw.item(new ItemStack(Items.ENDER_PEARL), 2, 2, false);
         Draw.text(String.format("%.1fs", left <= 0 ? pearl.value * 0.6 : left / 1000.0), 22, 3, 0xFFFFFFFF, true);

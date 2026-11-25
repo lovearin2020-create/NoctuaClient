@@ -17,6 +17,7 @@ public class ItemCounter extends HudModule {
 
     public ItemCounter() { super("Item Counter", "Counts key PvP items in your inventory.", CENTER, 146, END, 4); optionalBackground(); }
 
+    protected boolean hasLumenStyle() { return false; }
     public float width() { return shown * 20; }
     public float height() { return 26; }
 

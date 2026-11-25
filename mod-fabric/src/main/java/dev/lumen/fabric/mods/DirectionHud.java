@@ -17,6 +17,7 @@ public class DirectionHud extends HudModule {
 
     public DirectionHud() { super("Direction HUD", "Compass bar.", CENTER, -100, START, 4); }
 
+    protected boolean hasLumenStyle() { return false; }
     public float width() { return W; }
     public float height() { return H; }
 

@@ -17,6 +17,7 @@ public class Keystrokes extends HudModule {
     private final Setting.Bool background = bool("Background", true);
     public Keystrokes() { super("Keystrokes", "Shows your movement keys and mouse buttons.", START, 4, START, 66); }
 
+    protected boolean hasLumenStyle() { return false; }
     public float width() { return 62; }
     public float height() { return 40 + (mouse.on() ? 20 : 0) + (space.on() ? 12 : 0) + 2; }
 

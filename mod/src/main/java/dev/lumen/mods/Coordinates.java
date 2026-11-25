@@ -18,7 +18,7 @@ public class Coordinates extends HudModule {
     public Coordinates() { super("Coordinates", "Position and facing direction.", START, 4, START, 40); }
 
     public float width() { return lumen() ? 124 : w; }
-    public float height() { return lumen() ? (direction.on() || biome.on() ? 38 : 21) : 6 + 30 + (biome.on() ? 10 : 0); }
+    public float height() { return lumen() ? (direction.on() || biome.on() ? 32 : 18) : 6 + 30 + (biome.on() ? 10 : 0); }
 
     public void draw(boolean editing) {
         if (mc.thePlayer == null) return;
@@ -33,15 +33,20 @@ public class Coordinates extends HudModule {
             String[] k = {"X", "Y", "Z"}; int[] v = {x, y, z};
             for (int i = 0; i < 3; i++) {
                 float cx = 8 + i * 39;
-                Fnt.draw(k[i], cx, 8, 6, 0xFF8891A5);
-                Fnt.drawB(String.valueOf(v[i]), cx + 8, 5.5f, 9, color.get());
+                // same margin above the first line as below the last; label and number share one middle
+                Fnt.draw(k[i], cx, mid(6, 6.3f, 6), 6, 0xFF8891A5);
+                Fnt.drawB(String.valueOf(v[i]), cx + 8, cap(6, 9), 9, color.get());
             }
             if (direction.on() || b != null) {
-                R.rect(6, 20, 112, 1, R.alpha(R.ACCENT, 0.35f));
-                if (b != null) Fnt.draw(Fnt.fit(b, 7, 60), 8, 25.5f, 7, 0xFF8891A5);
+                R.rect(6, 16, 112, 1, R.alpha(R.ACCENT, 0.35f));
+                float ty = cap(20.8f, 7);
+                if (b != null) Fnt.draw(Fnt.fit(b, 7, 60), 8, ty, 7, 0xFF8891A5);
                 if (direction.on()) {
-                    String d = "Facing " + DIRS[MathHelper.floor_double(mc.thePlayer.rotationYaw * 8.0F / 360.0F + 0.5D) & 7];
-                    Fnt.draw(d, 116 - Fnt.width(d, 7), 25.5f, 7, 0xFFDDE3F0);
+                    String d = DIRS[MathHelper.floor_double(mc.thePlayer.rotationYaw * 8.0F / 360.0F + 0.5D) & 7];
+                    // beside the biome it sits on the right; alone it starts the line
+                    float dx = b != null ? 116 - Fnt.width("Facing " + d, 7) : 8;
+                    Fnt.draw("Facing", dx, ty, 7, 0xFF8891A5);
+                    Fnt.drawB(d, dx + Fnt.width("Facing ", 7), ty, 7, 0xFFDDE3F0);
                 }
             }
             return;

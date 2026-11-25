@@ -31,7 +31,7 @@ public abstract class TextHud extends HudModule {
         current = s;
         float w = width();
         if (lumen()) {
-            if (background.on()) { panel(0, 0, w, 16); Fnt.center(s, w / 2f, 4.5f, 8, color.get()); }
+            if (background.on()) { panel(0, 0, w, 16); Fnt.center(s, w / 2f, mid(0, 16, 8), 8, color.get()); }
             else Fnt.draw(bracket(s), 0, 0.5f, 8, color.get());
             return;
         }

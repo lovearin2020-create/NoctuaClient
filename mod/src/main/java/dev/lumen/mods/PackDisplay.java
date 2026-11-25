@@ -41,8 +41,8 @@ public class PackDisplay extends HudModule {
                     Gui.drawModalRectWithCustomSizedTexture(5, 5, 0, 0, 20, 20, 20, 20);
                 } catch (Throwable ignored) {}
             }
-            Fnt.drawB(name, lx, 6, 9, color.get());
-            Fnt.draw(sub, lx, 18, 6, 0xFF8891A5);
+            Fnt.drawB(name, lx, cap(7.25f, 9), 9, color.get()); // the two lines together sit in the middle
+            Fnt.draw(sub, lx, cap(18.3f, 6), 6, 0xFF8891A5);
             return;
         }
         int tx = icon.on() && top != null ? 26 : 6;

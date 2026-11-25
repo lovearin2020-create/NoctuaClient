@@ -16,6 +16,7 @@ public class BlockCount extends HudModule {
     public BlockCount() { super("Block Count", "Blocks left of the type you are holding.", CENTER, 8, CENTER, 8); optionalBackground(); }
     protected boolean showing(boolean editing) { return editing || (mc.player != null && mc.player.getMainHandItem().getItem() instanceof BlockItem); }
 
+    protected boolean hasLumenStyle() { return false; }
     public float width() { return 18; }
     public float height() { return 9; }
 

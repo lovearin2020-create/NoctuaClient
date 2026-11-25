@@ -28,6 +28,7 @@ public class TargetHud extends HudModule {
 
     public TargetHud() { super("Target HUD", "The player you are fighting. Off on Hypixel (not allowed there).", CENTER, 14, CENTER, 26); }
 
+    protected boolean hasLumenStyle() { return false; }
     public float width() { return W; }
     public float height() { return H; }
 

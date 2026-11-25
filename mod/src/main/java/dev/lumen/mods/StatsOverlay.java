@@ -210,16 +210,16 @@ public class StatsOverlay extends HudModule {
             R.gradient(4, 1, W - 8, 9, 0x14FFFFFF, 0x00FFFFFF);
         }
         int head = 0xFF8891A5, dim = 0xFF6F778A;
-        Fnt.draw("TAG", 7, 5, 6, head);
-        Fnt.draw("STAR", 40, 5, 6, head);
-        Fnt.draw("PLAYER", 66, 5, 6, head);
+        Fnt.draw("TAG", 7, 4, 6, head);
+        Fnt.draw("STAR", 40, 4, 6, head);
+        Fnt.draw("PLAYER", 66, 4, 6, head);
         Setting.Bool[] cols = columns();
         float[] cx = new float[cols.length];
         float x = LEFT;
         for (int i = 0; i < cols.length; i++) {
             if (!cols[i].on()) continue;
             x += WIDTHS[i]; cx[i] = x;
-            Fnt.draw(LABELS[i], x - Fnt.width(LABELS[i], 6), 5, 6, head);
+            Fnt.draw(LABELS[i], x - Fnt.width(LABELS[i], 6), 4, 6, head);
         }
         R.rect(6, 14, W - 12, 1, R.alpha(ac, 0.75f));
 
@@ -230,7 +230,7 @@ public class StatsOverlay extends HudModule {
             String tag = !e.tag.isEmpty() ? tagLabel(e.tag) : nick ? "NICK" : null;
             if (tag != null) {
                 R.roundRect(5, y, 31, 8, 4, !e.tag.isEmpty() ? tagColor(e.tag) : 0xFF8E5BD9);
-                Fnt.centerB(tag, 20.5f, y + 1.3f, 5, 0xFFFFFFFF);
+                Fnt.centerB(tag, 20.5f, y + 0.6f, 5, 0xFFFFFFFF);
             }
             String name = r.name + (e.realName != null ? " (" + e.realName + ")" : "");
             Fnt.draw(Fnt.fit(name, 7, 108), 66, y + 0.6f, 7, r.color);

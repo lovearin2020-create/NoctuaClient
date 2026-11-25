@@ -111,17 +111,20 @@ public class SessionStats extends HudModule {
 
     private boolean big() { return showFinals.on() || showBeds.on() || showWins.on(); }
     private int small() { return (showKills.on() ? 1 : 0) + (showDeaths.on() ? 1 : 0) + (showFkdr.on() ? 1 : 0) + (showBblr.on() ? 1 : 0); }
-    private float lumenHeight() { return 19 + (big() ? 27 : 0) + (small() > 0 ? 4 + small() * 10 : 0) + 3; }
+    /** Where the small rows start. */
+    private float smallY() { return big() ? 48 : 19.5f; }
+    /** 6 below the last line of letters, the same as above the first. */
+    private float lumenHeight() { return (small() > 0 ? smallY() + (small() - 1) * 10 + 7.35f : big() ? 38.25f : 10.4f) + 6; }
 
     private void drawLumen() {
         float w = 132;
         if (background.on()) panel(0, 0, w, lumenHeight());
         int dim = 0xFF8891A5;
-        dev.lumen.util.Fnt.draw("BED WARS SESSION", 7, 5, 6, dev.lumen.util.Fnt.REGULAR, 0.5f, dim, dim);
+        dev.lumen.util.Fnt.draw("BED WARS SESSION", 7, cap(6, 6), 6, dev.lumen.util.Fnt.REGULAR, 0.5f, dim, dim);
         if (showTime.on()) {
             long s = (System.currentTimeMillis() - SESSION_START) / 1000;
             String t = s >= 3600 ? String.format("%d:%02d:%02d", s / 3600, s / 60 % 60, s % 60) : String.format("%d:%02d", s / 60, s % 60);
-            dev.lumen.util.Fnt.draw(t, w - 7 - dev.lumen.util.Fnt.width(t, 6), 5, 6, dim);
+            dev.lumen.util.Fnt.draw(t, w - 7 - dev.lumen.util.Fnt.width(t, 6), cap(6, 6), 6, dim);
         }
         R.rect(6, 14, w - 12, 1, R.alpha(R.ACCENT, 0.75f));
         float y = 18;
@@ -140,7 +143,7 @@ public class SessionStats extends HudModule {
         }
         if (small() > 0) {
             if (big()) R.rect(6, y - 1, w - 12, 1, R.alpha(R.ACCENT, 0.3f));
-            y += 3;
+            y = smallY();
             String[][] rows = {showKills.on() ? new String[]{"Kills", String.valueOf(kills)} : null, showDeaths.on() ? new String[]{"Deaths", String.valueOf(deaths)} : null,
                     showFkdr.on() ? new String[]{"FKDR", ratio(finals, finalDeaths)} : null, showBblr.on() ? new String[]{"BBLR", ratio(beds, bedsLost)} : null};
             for (String[] r : rows) {

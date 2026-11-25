@@ -90,16 +90,63 @@ public class SessionStats extends HudModule {
     }
 
     public float width() {
+        if (lumen()) return 132;
         float w = 40;
         for (String s : lines) w = Math.max(w, mc.font.width(s));
         return w + 8;
     }
-    public float height() { return Math.max(1, lines.size()) * 10 + 6; }
+    public float height() { return lumen() ? lumenHeight() : Math.max(1, lines.size()) * 10 + 6; }
 
     public void draw(boolean editing) {
         build();
         if (lines.isEmpty()) return;
+        if (lumen()) { drawLumen(); return; }
         if (background.on()) Draw.roundRect(0, 0, width(), height(), 3, 0x70000000);
         for (int i = 0; i < lines.size(); i++) Draw.text(lines.get(i), 4, 4 + i * 10, color.get(), true);
+    }
+
+    private boolean big() { return showFinals.on() || showBeds.on() || showWins.on(); }
+    private int small() { return (showKills.on() ? 1 : 0) + (showDeaths.on() ? 1 : 0) + (showFkdr.on() ? 1 : 0) + (showBblr.on() ? 1 : 0); }
+    private float smallY() { return big() ? 48 : 19.5f; }
+    /** 6 below the last line of letters, the same as above the first. */
+    private float lumenHeight() { return (small() > 0 ? smallY() + (small() - 1) * 10 + 7.35f : big() ? 38.25f : 10.4f) + 6; }
+
+    private void drawLumen() {
+        float w = 132;
+        if (background.on()) panel(0, 0, w, lumenHeight());
+        int dim = 0xFF8891A5;
+        Draw.ui("BED WARS SESSION", 7, cap(6, 6), 6, dim);
+        if (showTime.on()) {
+            long s = (System.currentTimeMillis() - SESSION_START) / 1000;
+            String t = s >= 3600 ? String.format("%d:%02d:%02d", s / 3600, s / 60 % 60, s % 60) : String.format("%d:%02d", s / 60, s % 60);
+            Draw.ui(t, w - 7 - Draw.uiWidth(t, 6), cap(6, 6), 6, dim);
+        }
+        Draw.rect(6, 14, w - 12, 1, Draw.alpha(Draw.ACCENT, 0.75f));
+        float y = 18;
+        if (big()) {
+            List<String[]> cells = new ArrayList<>();
+            if (showFinals.on()) cells.add(new String[]{String.valueOf(finals), "FINALS"});
+            if (showBeds.on()) cells.add(new String[]{String.valueOf(beds), "BEDS"});
+            if (showWins.on()) cells.add(new String[]{wins + " / " + losses, "W / L"});
+            float cw = (w - 12) / cells.size();
+            for (int i = 0; i < cells.size(); i++) {
+                float cx = 6 + cw * i + cw / 2f;
+                Draw.uiCenterB(cells.get(i)[0], cx, y, 12, color.get());
+                Draw.uiCenter(cells.get(i)[1], cx, y + 15, 5, dim);
+            }
+            y += 27;
+        }
+        if (small() > 0) {
+            if (big()) Draw.rect(6, y - 1, w - 12, 1, Draw.alpha(Draw.ACCENT, 0.3f));
+            y = smallY();
+            String[][] rows = {showKills.on() ? new String[]{"Kills", String.valueOf(kills)} : null, showDeaths.on() ? new String[]{"Deaths", String.valueOf(deaths)} : null,
+                    showFkdr.on() ? new String[]{"FKDR", ratio(finals, finalDeaths)} : null, showBblr.on() ? new String[]{"BBLR", ratio(beds, bedsLost)} : null};
+            for (String[] r : rows) {
+                if (r == null) continue;
+                Draw.ui(r[0], 7, y, 7, dim);
+                Draw.uiB(r[1], w - 7 - Draw.uiWidth(r[1], 7, true), y, 7, color.get());
+                y += 10;
+            }
+        }
     }
 }
