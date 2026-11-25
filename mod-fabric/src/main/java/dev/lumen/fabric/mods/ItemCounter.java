@@ -17,7 +17,6 @@ public class ItemCounter extends HudModule {
 
     public ItemCounter() { super("Item Counter", "Counts key PvP items in your inventory.", CENTER, 146, END, 4); optionalBackground(); }
 
-    protected boolean hasLumenStyle() { return false; }
     public float width() { return shown * 20; }
     public float height() { return 26; }
 
@@ -38,7 +37,8 @@ public class ItemCounter extends HudModule {
             if (n == 0 && hideZero.on() && !editing) continue;
             Draw.item(new ItemStack(items[k]), i * 20 + 2, 0, false);
             String s = String.valueOf(n);
-            Draw.text(s, i * 20 + 10 - mc.font.width(s) / 2f, 17, n == 0 ? 0xFFFF5C5C : color.get(), true);
+            if (lumen()) Draw.uiCenterB(s, i * 20 + 10, cap(18, 7), 7, n == 0 ? 0xFFFF5C5C : color.get());
+            else Draw.text(s, i * 20 + 10 - mc.font.width(s) / 2f, 17, n == 0 ? 0xFFFF5C5C : color.get(), true);
             i++;
         }
         shown = Math.max(1, i);

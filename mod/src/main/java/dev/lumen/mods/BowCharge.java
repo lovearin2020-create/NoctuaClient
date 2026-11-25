@@ -2,6 +2,7 @@ package dev.lumen.mods;
 
 import dev.lumen.core.HudModule;
 import dev.lumen.core.Setting;
+import dev.lumen.util.Fnt;
 import dev.lumen.util.R;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
@@ -17,7 +18,6 @@ public class BowCharge extends HudModule {
         return editing || (mc.thePlayer != null && mc.thePlayer.isUsingItem() && mc.thePlayer.getItemInUse() != null && mc.thePlayer.getItemInUse().getItem() == Items.bow);
     }
 
-    protected boolean hasLumenStyle() { return false; }
     public float width() { return 40; }
     public float height() { return percent.on() ? 14 : 4; }
 
@@ -38,6 +38,12 @@ public class BowCharge extends HudModule {
             p = power(mc.thePlayer.getItemInUseDuration());
         }
         int c = p >= 1f ? full.get() : color.get();
+        if (lumen()) {
+            R.roundRect(0, 0, 40, 4, 2, 0x90000000);
+            R.roundRect(1, 1, Math.max(2, 38 * p), 2, 1, c);
+            if (percent.on()) { String s = Math.round(p * 100) + "%"; Fnt.centerB(s, 20, cap(7.5f, 7), 7, c); }
+            return;
+        }
         R.rect(0, 0, 40, 4, 0x90000000);
         R.rect(1, 1, 38 * p, 2, c);
         if (percent.on()) {

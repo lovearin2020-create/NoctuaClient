@@ -17,7 +17,6 @@ public class Keystrokes extends HudModule {
     private final Setting.Bool background = bool("Background", true);
     public Keystrokes() { super("Keystrokes", "Shows your movement keys and mouse buttons.", START, 4, START, 66); }
 
-    protected boolean hasLumenStyle() { return false; }
     public float width() { return 62; }
     public float height() { return 40 + (mouse.on() ? 20 : 0) + (space.on() ? 12 : 0) + 2; }
 
@@ -25,6 +24,16 @@ public class Keystrokes extends HudModule {
         boolean down = !editing && k.isDown();
         fade[i] = Draw.lerp(fade[i], down ? 1 : 0, 0.35f);
         // without the boxes a pressed key is shown by its colour alone
+        if (lumen()) {
+            // the same keys as soft tiles with Noctua's letters, centred in each
+            if (background.on()) Draw.roundRect(x, y, w, h, 5, Draw.mix(0x78000000, Draw.alpha(pressed.get(), 0.85f), fade[i]));
+            else if (fade[i] > 0.02f) Draw.roundRect(x, y, w, h, 5, Draw.alpha(pressed.get(), 0.3f * fade[i]));
+            int tc = background.on() ? Draw.mix(color.get(), 0xFF000000, fade[i]) : Draw.mix(color.get(), pressed.get(), fade[i]);
+            if (label == null) Draw.roundRect(x + w / 2 - 10, y + h / 2 - 1, 20, 2, 1, tc);
+            else if (sub == null) Draw.uiCenterB(label, x + w / 2f, mid(y, h, 9), 9, tc);
+            else { Draw.uiCenterB(label, x + w / 2f, cap(y + 4.3f, 8), 8, tc); Draw.uiCenter(sub, x + w / 2f, cap(y + 13.9f, 5), 5, tc); }
+            return;
+        }
         if (background.on()) Draw.roundRect(x, y, w, h, 3, Draw.mix(0x70000000, Draw.alpha(pressed.get(), 0.75f), fade[i]));
         else if (fade[i] > 0.02f) Draw.roundRect(x, y, w, h, 3, Draw.alpha(pressed.get(), 0.3f * fade[i]));
         int c = background.on() ? Draw.mix(color.get(), 0xFF000000, fade[i]) : Draw.mix(color.get(), pressed.get(), fade[i]);

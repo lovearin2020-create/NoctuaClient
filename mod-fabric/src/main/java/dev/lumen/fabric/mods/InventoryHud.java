@@ -12,7 +12,6 @@ public class InventoryHud extends HudModule {
 
     public InventoryHud() { super("Inventory HUD", "Shows your inventory on screen.", END, 4, END, 4); }
 
-    protected boolean hasLumenStyle() { return false; }
     public float width() { return 9 * 18 + 6; }
     public float height() { return 3 * 18 + 6; }
 
@@ -23,11 +22,11 @@ public class InventoryHud extends HudModule {
             for (int i = 9; i < 36 && !any; i++) any = !inv.getItem(i).isEmpty();
             if (!any) return;
         }
-        if (background.on()) Draw.roundRect(0, 0, width(), height(), 4, 0x70000000);
+        if (background.on()) { if (lumen()) panel(0, 0, width(), height()); else Draw.roundRect(0, 0, width(), height(), 4, 0x70000000); }
         for (int i = 9; i < 36; i++) {
             int col = (i - 9) % 9, row = (i - 9) / 9;
             int x = 4 + col * 18, y = 4 + row * 18;
-            if (background.on()) Draw.rect(x - 1, y - 1, 18, 18, 0x18FFFFFF);
+            if (background.on()) { if (lumen()) Draw.roundRect(x - 0.5f, y - 0.5f, 17, 17, 4, 0x16FFFFFF); else Draw.rect(x - 1, y - 1, 18, 18, 0x18FFFFFF); }
             ItemStack s = inv.getItem(i);
             if (!s.isEmpty()) Draw.item(s, x, y, true);
         }

@@ -53,7 +53,7 @@ public final class Hooks {
     }
 
     public static void hud(GuiGraphicsExtractor g) {
-        if (!ready() || mc.player == null || mc.gui.screen() instanceof HudEditorScreen) return;
+        if (!ready() || mc.player == null || mc.gui.screen() instanceof HudEditorScreen || mc.gui.screen() instanceof dev.lumen.fabric.gui.ModMenuScreen) return; // the menu is see-through: no HUD under it
         Draw.begin(g);
         int sw = g.guiWidth(), sh = g.guiHeight();
         for (Module m : Lumen.modules.all) {

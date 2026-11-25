@@ -2,6 +2,7 @@ package dev.lumen.mods;
 
 import dev.lumen.core.HudModule;
 import dev.lumen.core.Setting;
+import dev.lumen.util.Fnt;
 import dev.lumen.util.R;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
@@ -14,15 +15,14 @@ public class InventoryHud extends HudModule {
 
     public InventoryHud() { super("Inventory HUD", "Your inventory on screen.", CENTER, -84, START, 30); }
 
-    protected boolean hasLumenStyle() { return false; }
     public float width() { return 9 * 18 + 6; }
     public float height() { return 3 * 18 + 6; }
 
     public void draw(boolean editing) {
         int a = (int) (opacity.value * 2.55) << 24;
-        if (background.on()) R.roundRect(0, 0, width(), height(), 4, a);
+        if (background.on()) { if (lumen()) R.roundRect(0, 0, width(), height(), 6, a); else R.roundRect(0, 0, width(), height(), 4, a); }
         if (slots.on()) {
-            for (int i = 0; i < 27; i++) R.roundRect(3 + (i % 9) * 18 + 0.5f, 3 + (i / 9) * 18 + 0.5f, 17, 17, 2, 0x22FFFFFF);
+            for (int i = 0; i < 27; i++) R.roundRect(3 + (i % 9) * 18 + 0.5f, 3 + (i / 9) * 18 + 0.5f, 17, 17, lumen() ? 4 : 2, lumen() ? 0x16FFFFFF : 0x22FFFFFF);
         }
         if (mc.thePlayer == null) return;
         GlStateManager.pushMatrix();

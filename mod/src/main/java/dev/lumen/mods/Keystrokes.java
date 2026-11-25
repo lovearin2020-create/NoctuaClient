@@ -3,6 +3,7 @@ package dev.lumen.mods;
 import dev.lumen.core.HudModule;
 import dev.lumen.core.Setting;
 import dev.lumen.util.Clicks;
+import dev.lumen.util.Fnt;
 import dev.lumen.util.R;
 import dev.lumen.util.Util;
 import net.minecraft.client.renderer.GlStateManager;
@@ -21,7 +22,6 @@ public class Keystrokes extends HudModule {
 
     public Keystrokes() { super("Keystrokes", "Movement keys and mouse buttons.", START, 4, CENTER, -10); }
 
-    protected boolean hasLumenStyle() { return false; }
     public float width() { return 70; }
     public float height() { return 46 + (mouse.on() ? 24 : 0) + (space.on() ? 14 : 0); }
 
@@ -35,9 +35,18 @@ public class Keystrokes extends HudModule {
         fade[i] = Util.lerp(fade[i], down ? 1 : 0, 0.3f);
         int bg = R.mix(0x70000000, R.alpha(pressed.get(), 0.75f), fade[i]);
         // without the boxes a pressed key is shown by its colour alone
-        if (background.on()) R.roundRect(x, y, w, h, 3, bg);
+        if (lumen()) { if (!background.on() && fade[i] > 0.02f) R.roundRect(x, y, w, h, 5, R.alpha(pressed.get(), 0.3f * fade[i])); }
+        else if (background.on()) R.roundRect(x, y, w, h, 3, bg);
         else if (fade[i] > 0.02f) R.roundRect(x, y, w, h, 3, R.alpha(pressed.get(), 0.3f * fade[i]));
         int tc = background.on() ? R.mix(text.get(), 0xFF101010, fade[i]) : R.mix(text.get(), pressed.get(), fade[i]);
+        if (lumen()) {
+            // the same keys as soft tiles with Noctua's letters, centred in each
+            if (background.on()) R.roundRect(x, y, w, h, 5, R.mix(0x78000000, R.alpha(pressed.get(), 0.85f), fade[i]));
+            if (label == null) R.roundRect(x + w / 2 - 10, y + h / 2 - 1, 20, 2, 1, tc);
+            else if (sub == null) Fnt.centerB(label, x + w / 2f, mid(y, h, 9), 9, tc);
+            else { Fnt.centerB(label, x + w / 2f, cap(y + 4.3f, 8), 8, tc); Fnt.center(sub, x + w / 2f, cap(y + 13.9f, 5), 5, tc); }
+            return;
+        }
         if (label != null) {
             float ty = sub == null ? y + (h - 8) / 2f : y + 3;
             R.mcText(label, x + (w - mc.fontRendererObj.getStringWidth(label)) / 2f, ty, tc, false);

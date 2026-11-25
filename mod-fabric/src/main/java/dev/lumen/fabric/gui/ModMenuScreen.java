@@ -24,13 +24,21 @@ import java.util.Map;
 
 /** The RSHIFT mod menu: category sidebar, searchable module grid and per-module settings. */
 public class ModMenuScreen extends Screen {
-    private static final int W = 452, H = 308, SIDE = 108, CARD_H = 72, GAP = 8, ROW = 26;
+    private static final int W = 600, H = 330, SIDE = 98, SETW = 190, CARD_H = 44, GAP = 11, ROW = 26, LINE = 20;
+    private static final net.minecraft.resources.Identifier MOON = net.minecraft.resources.Identifier.fromNamespaceAndPath("lumen", "textures/title/moon.png");
+    /** Where a line of letters goes so that it sits where the 1.8.9 menu puts it (there y is the top of the line box). */
+    private static float u(float y, float size) { return y + 0.3f * size; }
     private static final int TEXT = 0xFFF2F4F8, MUTED = 0xFF8891A5, GREEN = 0xFF2FBF71, OFF = 0xFF2B303B, RED = 0xFFB0344E;
     private static final int ESC = InputConstants.KEY_ESCAPE, ENTER = InputConstants.KEY_RETURN, BACKSPACE = InputConstants.KEY_BACKSPACE, KEY_V = InputConstants.KEY_V;
     private static final int LEFT = InputConstants.MOUSE_BUTTON_LEFT, RIGHT = InputConstants.MOUSE_BUTTON_RIGHT;
 
     private static Category category; // null = all mods
     private Module open;
+    /** For screenshots and tests: opens with this mod's settings showing. */
+    public ModMenuScreen select(Module m) { open = m; return this; }
+    /** Opens straight on the Store. */
+    public ModMenuScreen openStore() { store = true; StorePage.opened(); return this; }
+    private boolean rowHit;
     private String search = "";
     private boolean searching;
     private float scroll, scrollTo, settingsScroll, settingsScrollTo;
@@ -106,130 +114,170 @@ public class ModMenuScreen extends Screen {
         Draw.uiScale = fit();
         Draw.square = Client.corners.is("Square");
         double mx = tx(rawX), my = ty(rawY);
-        Draw.rect(0, 0, width, height, minecraft.level == null ? 0x55000000 : Theme.dim);
+        Draw.rect(0, 0, width, height, minecraft.level == null ? 0x55000000 : 0x60060910);
         float f = fit();
         g.pose().pushMatrix();
         g.pose().translate(width / 2f, height / 2f);
         g.pose().scale(f, f);
         g.pose().translate(-width / 2f, -height / 2f);
 
-        float pr = Theme.glass ? 14 : 9;
-        Draw.roundBorder(px, py, W, H, pr, Theme.bg, Theme.glass ? Theme.outline : 0xFF262B36);
-        Draw.scissor(px + 1, py + 1, SIDE - 1, H - 2); // one translucent layer only, so no seam where the pieces would overlap
-        Draw.roundRect(px + 1, py + 1, SIDE + 30, H - 2, pr - 1, Theme.side);
+        float pr = 9;
+        Draw.roundRect(px, py, W, H, pr, 0x78000000);
+        Draw.scissor(px, py, SIDE, H); // one extra layer per pane, so no seam where the pieces would overlap
+        Draw.roundRect(px, py, SIDE + 30, H, pr, 0x30000000);
         Draw.endScissor();
-        Draw.rect(px + SIDE, py + 1, 1, H - 2, Theme.line);
+        if (!store && !profiles) {
+            Draw.scissor(px + W - SETW, py, SETW, H);
+            Draw.roundRect(px + W - SETW - 30, py, SETW + 30, H, pr, 0x40000000);
+            Draw.endScissor();
+            Draw.rect(px + W - SETW, py, 1, H, 0x16FFFFFF);
+        }
+        Draw.rect(px + SIDE, py, 1, H, 0x16FFFFFF);
+        Draw.roundOutline(px, py, W, H, pr, 0x1EFFFFFF);
 
         drawSidebar(mx, my);
         if (store) StorePage.draw(this, mx, my, px + SIDE + 14, py + 14, W - SIDE - 28, H - 28);
-        else if (profiles) drawProfiles(mx, my); else if (open == null) drawGrid(mx, my); else drawSettings(mx, my);
+        else if (profiles) drawProfiles(mx, my); else { drawGrid(mx, my); drawSettings(mx, my); }
         g.pose().popMatrix();
     }
 
-    private void drawSidebar(double mx, double my) {
-                Draw.uiB("NOCTUA", px + 15, py + 12, 17, 0xFFFFFFFF);
-        Draw.uiB("C L I E N T", px + 16, py + 34, 7, Draw.ACCENT);
-        String ver = "v" + Lumen.VERSION;
-        Draw.ui(ver, px + SIDE - 12 - Draw.uiWidth(ver, 7), py + 35, 7, (Theme.glass ? 0xFFA9B1C4 : 0xFF5C6475));
+    private static final int CAT_Y = 44, CAT_H = 20;
 
-        int y = py + 52;
+    private void spaced(String t, float x, float y, float size, float gap, int color, boolean bold) {
+        for (int i = 0; i < t.length(); i++) { String c = t.substring(i, i + 1); Draw.ui(c, x, y, size, color, bold); x += Draw.uiWidth(c, size, bold) + gap; }
+    }
+    private float spacedW(String t, float size, float gap, boolean bold) { float w = 0; for (int i = 0; i < t.length(); i++) w += Draw.uiWidth(t.substring(i, i + 1), size, bold) + gap; return w - gap; }
+
+    private void drawSidebar(double mx, double my) {
+        try {
+            if (minecraft.getResourceManager().getResource(MOON).isPresent()) {
+                var g = Draw.g();
+                g.pose().pushMatrix();
+                g.pose().translate(px + 12, py + 12);
+                g.pose().scale(16 / 128f, 16 / 128f);
+                g.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, MOON, 0, 0, 0f, 0f, 128, 128, 128, 128);
+                g.pose().popMatrix();
+            }
+        } catch (Throwable ignored) {}
+        spaced("NOCTUA", px + 31, u(py + 15f, 10), 10, 1.2f, 0xFFFFFFFF, true);
+
+        int y = py + CAT_Y;
         for (int i = -1; i < Category.values().length; i++) {
             Category c = i < 0 ? null : Category.values()[i];
             if (c != null && Lumen.modules.of(c).isEmpty()) continue; // e.g. Cosmetics, which moved to the Store
-            boolean sel = !profiles && !store && open == null && search.isEmpty() && category == c;
-            boolean hov = Draw.in(mx, my, px + 8, y, SIDE - 16, 18);
+            boolean sel = !profiles && !store && search.isEmpty() && category == c;
+            boolean hov = Draw.in(mx, my, px, y, SIDE, CAT_H);
             float a = anim("cat" + i, sel ? 1f : hov ? 0.35f : 0f);
-            if (a > 0.01f) Draw.roundRect(px + 8, y, SIDE - 16, 18, 5, Draw.alpha(Draw.ACCENT, a * 0.9f));
-            Draw.ui(c == null ? "All Mods" : c.label, px + 15, y + 4.5f, 9, sel ? 0xFFFFFFFF : Draw.mix(MUTED, TEXT, a * 2));
+            if (a > 0.01f) Draw.rect(px, y, SIDE, CAT_H, Draw.alpha(Draw.ACCENT, a * 0.18f));
+            if (sel) Draw.roundRect(px, y + 4, 2, CAT_H - 8, 1, Draw.ACCENT);
+            spaced((c == null ? "All" : c.label).toUpperCase(), px + 13, u(y + 6.5f, 7), 7, 0.6f, sel ? 0xFFFFFFFF : Draw.mix(MUTED, TEXT, a * 2), false);
             String n = String.valueOf(Lumen.modules.of(c).size());
-            Draw.ui(n, px + SIDE - 14 - Draw.uiWidth(n, 8), y + 5, 8, sel ? 0xDDFFFFFF : (Theme.glass ? 0xFFA9B1C4 : 0xFF5C6475));
-            y += 20;
+            Draw.ui(n, px + SIDE - 12 - Draw.uiWidth(n, 6), u(y + 7, 6), 6, 0xFF6F778A);
+            y += CAT_H;
         }
 
-        boolean sh = Draw.in(mx, my, px + 8, py + H - 88, SIDE - 16, 22);
-        float sta = anim("storeTab", store ? 1f : sh ? 0.35f : 0f);
-        Draw.roundRect(px + 8, py + H - 88, SIDE - 16, 22, 6, sta > 0.01f ? Draw.mix(Theme.card, Draw.ACCENT, sta * 0.9f) : Theme.card);
-        StorePage.gem(px + 17, py + H - 82, 10, 0xFFFF3B55);
-        Draw.track("STORE", px + SIDE / 2f + 4, py + H - 80.5f, 7, 1.2f, store || sh ? TEXT : MUTED);
-        boolean ph = Draw.in(mx, my, px + 8, py + H - 62, SIDE - 16, 22);
-        float sa = anim("settingsTab", profiles && !store ? 1f : ph ? 0.35f : 0f);
-        Draw.roundRect(px + 8, py + H - 62, SIDE - 16, 22, 6, sa > 0.01f ? Draw.mix(Theme.card, Draw.ACCENT, sa * 0.9f) : Theme.card);
-        Draw.track("SETTINGS", px + SIDE / 2f, py + H - 54.5f, 7, 1.2f, profiles && !store || ph ? TEXT : MUTED);
-
-        boolean hov = Draw.in(mx, my, px + 8, py + H - 34, SIDE - 16, 24);
-        Draw.roundBorder(px + 8, py + H - 34, SIDE - 16, 24, 6, hov ? Theme.ctlHover : Theme.ctl, hov ? Draw.ACCENT : Theme.outline);
-        
-        Draw.track("EDIT HUD LAYOUT", px + SIDE / 2f, py + H - 25.5f, 7, 1.2f, TEXT);
+        boolean sh = Draw.in(mx, my, px + 9, py + H - 64, SIDE - 18, 19);
+        float sta = anim("storeTab", store ? 1f : sh ? 0.5f : 0f);
+        Draw.roundRect(px + 9, py + H - 64, SIDE - 18, 19, 5, Draw.mix(0x29E5484D, 0x66E5484D, sta));
+        StorePage.gem(px + 24, py + H - 59, 9, 0xFFFF3B55);
+        Draw.track("STORE", px + SIDE / 2f + 6, u(py + H - 58f, 7), 7, 1.0f, 0xFFFF8F93);
+        boolean ph = Draw.in(mx, my, px + 9, py + H - 41, SIDE - 18, 19);
+        float sa = anim("settingsTab", profiles && !store ? 1f : ph ? 0.5f : 0f);
+        Draw.roundRect(px + 9, py + H - 41, SIDE - 18, 19, 5, Draw.mix(0x40000000, Draw.alpha(Draw.ACCENT, 0.9f), sa));
+        Draw.track("OPTIONS", px + SIDE / 2f, u(py + H - 35f, 7), 7, 1.0f, profiles && !store || ph ? TEXT : MUTED);
+        String ver = "Noctua Client " + Lumen.VERSION;
+        Draw.uiCenter(ver, px + SIDE / 2f, u(py + H - 16, 6), 6, 0xFF6F778A);
     }
 
-    private void drawGrid(double mx, double my) {
-        int x0 = px + SIDE + 14, y0 = py + 14, w = W - SIDE - 28;
-        Draw.uiB(search.isEmpty() ? (category == null ? "All Mods" : category.label) : "Search", x0, y0 + 1, 13, TEXT);
+    /** Breaks a description into at most {@code lines} lines that fit the width. */
+    private static List<String> wrap(String text, float size, float w, int lines) {
+        List<String> out = new ArrayList<>();
+        String cur = "";
+        for (String word : text.split(" ")) {
+            String next = cur.isEmpty() ? word : cur + " " + word;
+            if (Draw.uiWidth(next, size) <= w || cur.isEmpty()) cur = next;
+            else { out.add(cur); cur = word; if (out.size() == lines) break; }
+        }
+        if (out.size() < lines && !cur.isEmpty()) out.add(cur);
+        else if (out.size() == lines && !cur.isEmpty()) out.set(lines - 1, Draw.fit(out.get(lines - 1) + " " + cur, size, w));
+        return out;
+    }
 
-        // search box
-        int sw = 120, sx = x0 + w - sw;
-        Draw.roundBorder(sx, y0, sw, 18, 5, Theme.card, searching ? Draw.ACCENT : Theme.outline);
-        String shown = search.isEmpty() && !searching ? "Search mods..." : Draw.fit(search, 9, sw - 18) + (searching && System.currentTimeMillis() / 500 % 2 == 0 ? "|" : "");
-        Draw.ui(shown, sx + 7, y0 + 4.5f, 9, search.isEmpty() && !searching ? (Theme.glass ? 0xFFA9B1C4 : 0xFF5C6475) : TEXT);
+    private void toggle(float x, float y, float a) {
+        Draw.roundRect(x, y, 18, 10, 5, Draw.mix(0x55000000, Draw.ACCENT, a));
+        if (a < 0.5f) Draw.roundOutline(x, y, 18, 10, 5, 0x24FFFFFF);
+        Draw.roundRect(x + 1.6f + a * 8, y + 1.6f, 6.8f, 6.8f, 3.4f, Draw.mix(0xFFAAB2C5, 0xFFFFFFFF, a));
+    }
+
+    private int gridX() { return px + SIDE + 12; }
+    private int gridW() { return W - SIDE - SETW - 24; }
+    private int gridTop() { return py + 12 + 44; }
+    private int gridH() { return H - 12 - 44 - 10; }
+
+    private void drawGrid(double mx, double my) {
+        int x0 = gridX(), y0 = py + 12, w = gridW();
+        int bw = 62, sw = w - bw - 6;
+        Draw.roundRect(x0, y0, sw, 18, 5, 0x40000000);
+        Draw.roundOutline(x0, y0, sw, 18, 5, searching ? Draw.ACCENT : 0x1CFFFFFF);
+        String shown = search.isEmpty() && !searching ? "Search mods..." : Draw.fit(search, 8, sw - 18) + (searching && System.currentTimeMillis() / 500 % 2 == 0 ? "|" : "");
+        Draw.ui(shown, x0 + 8, u(y0 + 5f, 8), 8, search.isEmpty() && !searching ? 0xFF6F778A : TEXT);
+        boolean eh = Draw.in(mx, my, x0 + w - bw, y0, bw, 18);
+        Draw.roundRect(x0 + w - bw, y0, bw, 18, 5, eh ? 0xFF6AA0FF : Draw.alpha(Draw.ACCENT, 0.9f));
+        Draw.track("EDIT HUD", x0 + w - bw / 2f, u(y0 + 5.5f, 7), 7, 1.0f, 0xFFFFFFFF);
 
         List<Module> list = visible();
-        int top = y0 + 30, viewH = H - 44 - 30;
-        int cw = (w - GAP * 2) / 3;
+        int on = 0;
+        for (Module m : list) if (m.isEnabled()) on++;
+        String title = (search.isEmpty() ? (category == null ? "All mods" : category.label) : "Search").toUpperCase();
+        spaced(title, x0 + 1, u(y0 + 27, 6), 6, 0.6f, MUTED, false);
+        String count = (on + " of " + list.size() + " enabled").toUpperCase();
+        spaced(count, x0 + w - 1 - spacedW(count, 6, 0.6f, false), u(y0 + 27, 6), 6, 0.6f, MUTED, false);
+        Draw.rect(x0, y0 + 37, w, 1, Draw.alpha(Draw.ACCENT, 0.75f));
+
+        int top = gridTop(), viewH = gridH();
+        float cw = (w - GAP * 2) / 3f;
         int rows = (list.size() + 2) / 3;
         float max = Math.max(0, rows * (CARD_H + GAP) - GAP - viewH);
         scrollTo = Math.max(0, Math.min(max, scrollTo));
         scroll = Draw.lerp(scroll, scrollTo, 0.3f);
-
-        Module hovered = null;
-        if (list.isEmpty()) Draw.uiCenter("No mods found", x0 + w / 2f, top + 40, 10, MUTED);
+        if (list.isEmpty()) Draw.uiCenter("No mods found", x0 + w / 2f, top + 40, 9, MUTED);
 
         Draw.scissor(x0 - 2, top, w + 4, viewH);
+        boolean inView = my >= top && my < top + viewH;
         for (int i = 0; i < list.size(); i++) {
             Module m = list.get(i);
             float cx = x0 + (i % 3) * (cw + GAP), cy = top + (i / 3) * (CARD_H + GAP) - scroll;
             if (cy + CARD_H < top || cy > top + viewH) continue;
-            boolean inView = my >= top && my < top + viewH;
-            boolean hov = inView && Draw.in(mx, my, cx, cy, cw, CARD_H);
+            boolean hov = inView && Draw.in(mx, my, cx, cy, cw, CARD_H), sel = open == m;
             float h = anim(m, hov ? 1 : 0);
-            if (Theme.glass) Draw.roundBorder(cx, cy, cw, CARD_H, Theme.radius, Draw.mix(Theme.card, Theme.cardHover, h), Theme.edge);
-            else Draw.roundRect(cx, cy, cw, CARD_H, Theme.radius, Draw.mix(Theme.card, Theme.cardHover, h));
-            if (hov) hovered = m;
-            boolean gear = !m.settings.isEmpty();
-            float titleY = cy + (CARD_H - (gear ? 34 : 17)) / 2f - 4.5f, titleW = Draw.uiWidth(m.name, 11), room = cw - 12;
-            int titleColor = Draw.mix(0xFFC9CFDB, 0xFFFFFFFF, h);
-            if (titleW <= room) Draw.uiCenter(m.name, cx + cw / 2f, titleY, 11, titleColor);
+            Draw.roundRect(cx, cy, cw, CARD_H, 6, sel ? Draw.mix(0x48000000, Draw.alpha(Draw.ACCENT, 0.5f), 0.45f) : Draw.mix(0x40000000, 0x66000000, h));
+            Draw.roundOutline(cx, cy, cw, CARD_H, 6, sel ? Draw.alpha(Draw.ACCENT, 0.9f) : Draw.mix(0x1CFFFFFF, 0x38FFFFFF, h));
+            float room = cw - 34, titleW = Draw.uiWidth(m.name, 8, true);
+            if (titleW <= room) Draw.uiB(m.name, cx + 7, u(cy + 6, 8), 8, TEXT);
             else {
                 // Too long for the card: slide it left and right inside the card instead of cutting it off.
-                Draw.scissor(cx + 6, cy, room, CARD_H - 17);
-                Draw.ui(m.name, cx + 6 - (titleW - room) * slide(titleW - room), titleY, 11, titleColor);
-                Draw.endScissor();
+                float clipTop = Math.max(cy, top), clipBottom = Math.min(cy + 17, top + viewH);
+                if (clipBottom > clipTop) {
+                    Draw.endScissor();
+                    Draw.scissor(cx + 7, clipTop, room, clipBottom - clipTop);
+                    Draw.uiB(m.name, cx + 7 - (titleW - room) * slide(titleW - room), u(cy + 6, 8), 8, TEXT);
+                    Draw.endScissor();
+                    Draw.scissor(x0 - 2, top, w + 4, viewH);
+                }
             }
-            if (gear) {
-                float oy = cy + CARD_H - 34;
-                boolean oh = inView && Draw.in(mx, my, cx, oy, cw, 16);
-                Draw.rect(cx, oy, cw, 16, oh ? Theme.barHover : Theme.bar);
-                Draw.track("OPTIONS", cx + cw / 2f, oy + 4.5f, 7, 1.6f, oh ? 0xFFFFFFFF : 0xFFD5DAE4);
-            }
-            float by = cy + CARD_H - 17;
-            float e = anim(m.name + "#on", m.isEnabled() ? 1 : 0);
-            boolean bh = inView && Draw.in(mx, my, cx, by, cw, 17);
-            int bar = Draw.mix(bh ? 0xFFC8405C : RED, bh ? 0xFF38D283 : GREEN, e);
-            Draw.roundRect(cx, by, cw, 17, Theme.radius, bar);
-            Draw.rect(cx, by, cw, Theme.radius + 1, bar);
-            Draw.track(m.isEnabled() ? "ENABLED" : "DISABLED", cx + cw / 2f, by + 5, 7, 1.6f, 0xFFFFFFFF);
+            List<String> desc = wrap(m.description, 6, cw - 14, 2);
+            for (int k = 0; k < desc.size(); k++) Draw.ui(desc.get(k), cx + 7, u(cy + 18.5f + k * 8, 6), 6, MUTED);
+            toggle(cx + cw - 25, cy + 6, anim(m.name + "#on", m.isEnabled() ? 1 : 0));
         }
         Draw.endScissor();
-        Draw.rect(x0, py + H - 24, w, 1, Theme.line);
-        Draw.ui(Draw.fit(hovered != null ? hovered.name + "  -  " + hovered.description : "Right-click a mod to open its settings.", 8, w), x0, py + H - 17, 8, hovered != null ? 0xFFB3BACB : (Theme.glass ? 0xFFA9B1C4 : 0xFF5C6475));
-
         if (max > 0) {
-            float trackH = viewH, barH = Math.max(18, trackH * viewH / (viewH + max));
-            Draw.roundRect(px + W - 8, top + (trackH - barH) * (scroll / max), 3, barH, 1.5f, Theme.track);
+            float barH = Math.max(18, viewH * (float) viewH / (viewH + max));
+            Draw.roundRect(x0 + w + 4, top + (viewH - barH) * (scroll / max), 2, barH, 1f, 0x40FFFFFF);
         }
     }
 
     /** Height of the client settings block at the top of the Settings tab. */
-    private int clientH() { return 26 + 4 + Client.shown.size() * ROW + 10; }
+    private int clientH() { return 26 + 4 + Client.shown.size() * LINE + 10; }
 
     private void drawProfiles(double mx, double my) {
         int x0 = px + SIDE + 14, w = W - SIDE - 28, top = py + 14 + 26, viewH = H - 14 - 26 - 8;
@@ -312,132 +360,169 @@ public class ModMenuScreen extends Screen {
         return false;
     }
 
+    private int setX() { return px + W - SETW + 12; }
+    private int setW() { return SETW - 24; }
+    private int setTop() { return py + 12 + 46; }
+    private int setH() { return H - 12 - 46 - 10; }
+
     private void drawSettings(double mx, double my) {
-        int x0 = px + SIDE + 14, y0 = py + 14, w = W - SIDE - 28;
-        boolean bh = Draw.in(mx, my, x0, y0, 44, 18);
-        Draw.roundRect(x0, y0, 44, 18, 5, bh ? Theme.ctlHover : Theme.card);
-        Draw.uiCenter("< Back", x0 + 22, y0 + 4.5f, 9, TEXT);
-        Draw.uiB(open.name, x0 + 54, y0 + 1, 13, TEXT);
-
-        // master toggle
-        float e = anim(open.name + "#on", open.isEnabled() ? 1 : 0);
-        float tx = x0 + w - 64;
-        Draw.roundRect(tx, y0, 64, 18, 5, Draw.mix(RED, GREEN, e));
-        Draw.track(open.isEnabled() ? "ENABLED" : "DISABLED", tx + 32, y0 + 5.5f, 7, 1.2f, 0xFFFFFFFF);
-
-        Draw.ui(Draw.fit(open.description, 8, w), x0, y0 + 26, 8, MUTED);
-
-        int top = y0 + 42, viewH = H - 56 - 14;
-        float max = Math.max(0, open.settings.size() * ROW + (open instanceof HudModule ? ROW : 0) - viewH);
-        settingsScrollTo = Math.max(0, Math.min(max, settingsScrollTo));
-        settingsScroll = Draw.lerp(settingsScroll, settingsScrollTo, 0.3f);
-
-        if (dragging != null) {
-            dragging.set(dragging.min + (dragging.max - dragging.min) * Math.max(0, Math.min(1, (mx - dragX) / dragW)));
+        int x0 = setX(), y0 = py + 12, w = setW();
+        if (open == null) {
+            Draw.uiCenter("Select a mod", x0 + w / 2f, u(py + H / 2f - 12, 9), 9, TEXT);
+            Draw.uiCenter("to see its settings here.", x0 + w / 2f, u(py + H / 2f + 1, 7), 7, MUTED);
+            return;
         }
+        Draw.uiB(Draw.fit(open.name, 11, w - 30), x0, u(y0 + 1, 11), 11, TEXT);
+        toggle(x0 + w - 18, y0 + 3, anim(open.name + "#on", open.isEnabled() ? 1 : 0));
+        List<String> desc = wrap(open.description, 6, w, 2);
+        for (int k = 0; k < desc.size(); k++) Draw.ui(desc.get(k), x0, u(y0 + 18 + k * 8, 6), 6, MUTED);
+        Draw.rect(x0, y0 + 39, w, 1, Draw.alpha(Draw.ACCENT, 0.75f));
 
+        int top = setTop(), viewH = setH();
+        if (dragging != null) dragging.set(dragging.min + (dragging.max - dragging.min) * Math.max(0, Math.min(1, (mx - dragX) / dragW)));
         Draw.scissor(x0 - 2, top, w + 4, viewH);
-        float y = top - settingsScroll;
-        y = drawRows(open.settings, x0, y, w, mx, my);
+        boolean inView = my >= top && my < top + viewH;
+        float y = rows(open.settings, x0, top - settingsScroll, w, inView ? mx : -9999, my, -1);
         if (open instanceof HudModule) {
-            Draw.roundRect(x0, y, w, ROW - 4, 5, Theme.card);
-            Draw.ui("Position & size", x0 + 10, y + 6.5f, 9, TEXT);
-            boolean hov = Draw.in(mx, my, x0 + w - 120, y + 3, 110, 16);
-            Draw.roundRect(x0 + w - 120, y + 3, 110, 16, 4, hov ? Draw.ACCENT : Theme.ctl);
-            Draw.uiCenter("Open HUD Editor", x0 + w - 65, y + 7, 8, TEXT);
+            Draw.ui("Position & size", x0, u(y + 6, 8), 8, TEXT);
+            boolean hov = inView && Draw.in(mx, my, x0 + w - 66, y + 3, 66, 14);
+            Draw.roundRect(x0 + w - 66, y + 3, 66, 14, 4, hov ? Draw.ACCENT : 0x40000000);
+            Draw.uiCenter("HUD Editor", x0 + w - 33, u(y + 6.5f, 7), 7, TEXT);
+            y += LINE;
         }
         Draw.endScissor();
-    }
-
-    /** Draws one row per setting. @return the y below the last row. */
-    private float drawRows(List<? extends Setting> list, int x0, float y, int w, double mx, double my) {
-        for (Setting st : list) {
-            Draw.roundRect(x0, y, w, ROW - 4, 5, Theme.card);
-            Draw.ui(st.name, x0 + 10, y + 6.5f, 9, TEXT);
-            float rx = x0 + w - 10;
-            if (st instanceof Setting.Bool) {
-                Setting.Bool b = (Setting.Bool) st;
-                float a = anim(st, b.value ? 1 : 0);
-                Draw.roundRect(rx - 28, y + 5, 28, 12, 6, Draw.mix(Theme.track, Draw.ACCENT, a));
-                Draw.roundRect(rx - 26 + a * 16, y + 7, 8, 8, 4, 0xFFFFFFFF);
-            } else if (st instanceof Setting.Num) {
-                Setting.Num n = (Setting.Num) st;
-                float sw = 110, sx = rx - sw;
-                float f = (float) ((n.value - n.min) / (n.max - n.min));
-                Draw.rect(sx, y + 10, sw, 2, Theme.track);
-                Draw.rect(sx, y + 10, sw * f, 2, Draw.ACCENT);
-                Draw.roundRect(sx + sw * f - 4, y + 7, 8, 8, 4, 0xFFFFFFFF);
-                String v = n.display();
-                Draw.ui(v, sx - 8 - Draw.uiWidth(v, 8), y + 7, 8, MUTED);
-            } else if (st instanceof Setting.Mode) {
-                Setting.Mode m = (Setting.Mode) st;
-                float bw = 110, bx = rx - bw;
-                boolean hov = Draw.in(mx, my, bx, y + 3, bw, 16);
-                Draw.roundRect(bx, y + 3, bw, 16, 4, hov ? Theme.ctlHover : Theme.ctl);
-                Draw.ui("<", bx + 6, y + 6.5f, 9, MUTED);
-                Draw.ui(">", bx + bw - 11, y + 6.5f, 9, MUTED);
-                Draw.uiCenter(Draw.fit(m.get(), 8, bw - 28), bx + bw / 2f, y + 7, 8, TEXT);
-            } else if (st instanceof Setting.Key) {
-                Setting.Key k = (Setting.Key) st;
-                float bw = 110, bx = rx - bw;
-                boolean wait = binding == k, hov = Draw.in(mx, my, bx, y + 3, bw, 16);
-                Draw.roundRect(bx, y + 3, bw, 16, 4, wait ? Draw.ACCENT : hov ? Theme.ctlHover : Theme.ctl);
-                Draw.uiCenter(wait ? "Press a key..." : k.key.equals("NONE") ? "Not set" : k.key, bx + bw / 2f, y + 7, 8, TEXT);
-            } else if (st instanceof Setting.Text) {
-                Setting.Text ts = (Setting.Text) st;
-                float bw = 150, bx = rx - bw;
-                boolean focus = editing == ts;
-                Draw.roundBorder(bx, y + 3, bw, 16, 4, Theme.ctl, focus ? Draw.ACCENT : Theme.outline);
-                String shown = ts.value;
-                while (shown.length() > 0 && Draw.uiWidth(shown, 8) > bw - 14) shown = shown.substring(1);
-                if (focus && System.currentTimeMillis() / 500 % 2 == 0) shown += "|";
-                if (shown.isEmpty() && !focus) Draw.ui("Click to type...", bx + 6, y + 7, 8, (Theme.glass ? 0xFFA9B1C4 : 0xFF5C6475));
-                else Draw.ui(shown, bx + 6, y + 7, 8, TEXT);
-            } else if (st instanceof Setting.Col) {
-                Setting.Col c = (Setting.Col) st;
-                int n = Setting.Col.PALETTE.length;
-                float sx = rx - (n + 1) * 14 + 2;
-                for (int i = 0; i <= n; i++) {
-                    float cx = sx + i * 14;
-                    boolean sel = i == n ? c.chroma : (!c.chroma && c.color == Setting.Col.PALETTE[i]);
-                    Draw.roundRect(cx - 1, y + 4, 14, 14, 4, sel ? 0xFFFFFFFF : Theme.outline);
-                    if (i == n) Draw.rainbow(cx + 1, y + 6, 10, 10);
-                    else Draw.roundRect(cx + (sel ? 1 : 0), y + 5 + (sel ? 1 : 0), sel ? 10 : 12, sel ? 10 : 12, 3, Setting.Col.PALETTE[i]);
-                }
-            }
-            y += ROW;
+        float max = Math.max(0, y + settingsScroll - top - viewH + 4);
+        settingsScrollTo = Math.max(0, Math.min(max, settingsScrollTo));
+        settingsScroll = Draw.lerp(settingsScroll, settingsScrollTo, 0.3f);
+        if (max > 0) {
+            float barH = Math.max(18, viewH * (float) viewH / (viewH + max));
+            Draw.roundRect(px + W - 6, top + (viewH - barH) * (settingsScroll / max), 2, barH, 1f, 0x40FFFFFF);
         }
-        return y;
     }
 
-    /** @return true if the click landed on one of the rows. */
-    private boolean clickRows(List<? extends Setting> list, int x0, float sy, int w, double mx, double my, int button) {
-        float rx = x0 + w - 10;
-        for (Setting st : list) {
-            if (my >= sy && my < sy + ROW - 4) {
-                if (st instanceof Setting.Bool b) {
-                    if (mx >= rx - 34) b.value = !b.value;
-                } else if (st instanceof Setting.Num n) {
-                    if (mx >= rx - 116 && mx <= rx + 6) { dragging = n; dragX = rx - 110; dragW = 110; slide(mx); }
-                } else if (st instanceof Setting.Mode m) {
-                    if (mx >= rx - 110 && mx <= rx) m.cycle(button == RIGHT || mx < rx - 55 ? -1 : 1);
-                } else if (st instanceof Setting.Key k) {
-                    if (mx >= rx - 110) binding = k;
-                } else if (st instanceof Setting.Text t) {
-                    if (mx >= rx - 150) editing = t;
-                } else if (st instanceof Setting.Col c) {
-                    int n = Setting.Col.PALETTE.length;
-                    float sx = rx - (n + 1) * 14 + 2;
-                    int idx = (int) Math.floor((mx - sx) / 14f);
-                    if (mx >= sx && idx >= 0 && idx <= n) {
-                        if (idx == n) c.chroma = true; else { c.chroma = false; c.color = Setting.Col.PALETTE[idx]; }
+    private static float segments(Setting.Mode m) { float t = 4; for (String o : m.options) t += Draw.uiWidth(o, 6) + 9; return t; }
+
+    /** The settings whose names share a "Group: " prefix with this one, as one block of chips. */
+    private static String group(Setting st) {
+        int i = st.name.indexOf(": ");
+        return st instanceof Setting.Bool && i > 0 ? st.name.substring(0, i) : null;
+    }
+
+    private float drawRows(List<? extends Setting> list, int x0, float y, int w, double mx, double my) { return rows(list, x0, y, w, mx, my, -1); }
+    private boolean clickRows(List<? extends Setting> list, int x0, float sy, int w, double mx, double my, int button) { rowHit = false; rows(list, x0, sy, w, mx, my, button == RIGHT ? 1 : 0); return rowHit; }
+
+    /**
+     * One pass over the settings that either draws them (button -1), measures them (-2) or applies a click, so all
+     * three always agree on where things are. @return the y below the last row.
+     */
+    private float rows(List<? extends Setting> list, float x0, float y, float w, double mx, double my, int button) {
+        boolean click = button >= 0, paint = button == -1;
+        float rx = x0 + w;
+        for (int idx = 0; idx < list.size(); idx++) {
+            Setting st = list.get(idx);
+            String g = group(st);
+            if (g != null) {
+                if (paint) spaced(g.toUpperCase() + "S", x0, u(y + 6, 6), 6, 0.6f, MUTED, false);
+                float cx = x0, cy = y + 17;
+                for (; idx < list.size() && g.equals(group(list.get(idx))); idx++) {
+                    Setting.Bool b = (Setting.Bool) list.get(idx);
+                    String label = b.name.substring(g.length() + 2);
+                    float cw = Draw.uiWidth(label, 6) + 10;
+                    if (cx + cw > rx && cx > x0) { cx = x0; cy += 15; }
+                    if (click) { if (Draw.in(mx, my, cx, cy, cw, 12)) { b.value = !b.value; rowHit = true; } }
+                    else if (paint) {
+                        float a = anim(b, b.value ? 1 : 0);
+                        Draw.roundRect(cx, cy, cw, 12, 4, Draw.mix(0x40000000, Draw.alpha(Draw.ACCENT, 0.3f), a));
+                        Draw.roundOutline(cx, cy, cw, 12, 4, Draw.mix(0x1CFFFFFF, Draw.alpha(Draw.ACCENT, 0.8f), a));
+                        Draw.ui(label, cx + 5, u(cy + 3.2f, 6), 6, Draw.mix(MUTED, 0xFFCFE0FF, a));
+                    }
+                    cx += cw + 4;
+                }
+                idx--;
+                y = cy + 12 + 6;
+                continue;
+            }
+            boolean hit = click && my >= y && my < y + (st instanceof Setting.Col ? 32 : LINE);
+            if (paint) Draw.ui(st.name, x0, u(y + 6, 8), 8, TEXT);
+            if (st instanceof Setting.Bool b) {
+                if (hit) { if (mx >= rx - 26) b.value = !b.value; rowHit = true; }
+                else if (paint) toggle(rx - 18, y + 5, anim(st, b.value ? 1 : 0));
+            } else if (st instanceof Setting.Num n) {
+                float sw = Math.min(110, w * 0.36f), sx = rx - 24 - sw;
+                if (hit) { if (mx >= sx - 6 && mx <= sx + sw + 6) { dragging = n; dragX = sx; dragW = sw; slide(mx); } rowHit = true; }
+                else if (paint) {
+                    float f = (float) ((n.value - n.min) / (n.max - n.min));
+                    Draw.roundRect(sx, y + 9f, sw, 2, 1f, 0x66000000);
+                    Draw.roundRect(sx, y + 9f, sw * f, 2, 1f, Draw.ACCENT);
+                    Draw.roundRect(sx + sw * f - 3.6f, y + 6.4f, 7.2f, 7.2f, 3.6f, 0xFFFFFFFF);
+                    String v = n.display();
+                    Draw.ui(v, rx - Draw.uiWidth(v, 7), u(y + 6.5f, 7), 7, MUTED);
+                }
+            } else if (st instanceof Setting.Mode m && segments(m) <= w * 0.66f) {
+                float total = segments(m), bx = rx - total;
+                if (paint) Draw.roundRect(bx, y + 3, total, 14, 4, 0x40000000);
+                float ox = bx + 2;
+                for (int i = 0; i < m.options.length; i++) {
+                    float sw = Draw.uiWidth(m.options[i], 6) + 9;
+                    if (hit && mx >= ox && mx < ox + sw) m.index = i;
+                    if (paint) {
+                        if (i == m.index) Draw.roundRect(ox, y + 5, sw, 10, 3, Draw.ACCENT);
+                        Draw.ui(m.options[i], ox + 4.5f, u(y + 7.2f, 6), 6, i == m.index ? 0xFFFFFFFF : MUTED);
+                    }
+                    ox += sw;
+                }
+                if (hit) rowHit = true;
+            } else if (st instanceof Setting.Mode || st instanceof Setting.Key) {
+                float bw = Math.min(110, w * 0.5f), bx = rx - bw;
+                if (hit) {
+                    if (mx >= bx) { if (st instanceof Setting.Mode m) m.cycle(button == 1 || mx < bx + bw / 2 ? -1 : 1); else binding = (Setting.Key) st; }
+                    rowHit = true;
+                } else if (paint) {
+                    boolean hov = Draw.in(mx, my, bx, y + 3, bw, 14), wait = binding == st;
+                    Draw.roundRect(bx, y + 3, bw, 14, 4, wait ? Draw.ACCENT : hov ? 0x66000000 : 0x40000000);
+                    if (st instanceof Setting.Mode m) {
+                        Draw.ui("<", bx + 5, u(y + 6f, 8), 8, MUTED);
+                        Draw.ui(">", bx + bw - 9, u(y + 6f, 8), 8, MUTED);
+                        Draw.uiCenter(Draw.fit(m.get(), 7, bw - 24), bx + bw / 2f, u(y + 6.5f, 7), 7, TEXT);
+                    } else {
+                        String k = ((Setting.Key) st).key;
+                        Draw.uiCenter(wait ? "Press a key..." : k.equals("NONE") ? "Not set" : k, bx + bw / 2f, u(y + 6.5f, 7), 7, TEXT);
                     }
                 }
-                return true;
+            } else if (st instanceof Setting.Text ts) {
+                float bw = Math.min(150, w * 0.5f), bx = rx - bw;
+                if (hit) { if (mx >= bx) editing = ts; rowHit = true; }
+                else if (paint) {
+                    boolean focus = editing == ts;
+                    Draw.roundRect(bx, y + 3, bw, 14, 4, 0x40000000);
+                    Draw.roundOutline(bx, y + 3, bw, 14, 4, focus ? Draw.ACCENT : 0x1CFFFFFF);
+                    String shown = ts.value;
+                    if (!focus && ts.name.endsWith("Key") && shown.length() > 4) shown = shown.substring(0, 4) + " ********";
+                    while (shown.length() > 0 && Draw.uiWidth(shown, 7) > bw - 12) shown = shown.substring(1);
+                    if (focus && System.currentTimeMillis() / 500 % 2 == 0) shown += "|";
+                    if (shown.isEmpty() && !focus) Draw.ui("Click to type...", bx + 6, u(y + 6.5f, 7), 7, 0xFF6F778A);
+                    else Draw.ui(shown, bx + 6, u(y + 6.5f, 7), 7, TEXT);
+                }
+            } else if (st instanceof Setting.Col c) {
+                int n = Setting.Col.PALETTE.length;
+                float step = Math.min(13, w / (n + 1)), sx = x0, cy = y + 18;
+                if (hit) {
+                    int i = (int) Math.floor((mx - sx) / step);
+                    if (my >= cy - 2 && mx >= sx && i >= 0 && i <= n) { if (i == n) c.chroma = true; else { c.chroma = false; c.color = Setting.Col.PALETTE[i]; } }
+                    rowHit = true;
+                } else if (paint) {
+                    for (int i = 0; i <= n; i++) {
+                        float cx = sx + i * step;
+                        boolean sel = i == n ? c.chroma : (!c.chroma && c.color == Setting.Col.PALETTE[i]);
+                        if (i == n) Draw.rainbow(cx + 1, cy + 1, 8, 8); else Draw.roundRect(cx, cy, 10, 10, 3, Setting.Col.PALETTE[i]);
+                        if (sel) Draw.roundOutline(cx - 1, cy - 1, 12, 12, 4, 0xFFFFFFFF);
+                    }
+                }
+                y += 12;
             }
-            sy += ROW;
+            y += LINE;
         }
-        return false;
+        return y;
     }
 
     // ---------------------------------------------------------------- input
@@ -451,22 +536,22 @@ public class ModMenuScreen extends Screen {
         editing = null;
         binding = null;
         // sidebar
-        int y = py + 52;
+        int y = py + CAT_Y;
         for (int i = -1; i < Category.values().length; i++) {
             if (i >= 0 && Lumen.modules.of(Category.values()[i]).isEmpty()) continue;
-            if (Draw.in(mx, my, px + 8, y, SIDE - 16, 18)) {
+            if (Draw.in(mx, my, px, y, SIDE, CAT_H)) {
                 category = i < 0 ? null : Category.values()[i];
-                open = null; search = ""; scrollTo = 0; profiles = false; if (store) { store = false; StorePage.closed(); }
+                search = ""; scrollTo = 0; profiles = false; if (store) { store = false; StorePage.closed(); }
                 return true;
             }
-            y += 20;
+            y += CAT_H;
         }
-        if (Draw.in(mx, my, px + 8, py + H - 88, SIDE - 16, 22)) {
-            store = !store; open = null; profiles = false;
+        if (Draw.in(mx, my, px + 9, py + H - 64, SIDE - 18, 19)) {
+            store = !store; profiles = false;
             if (store) StorePage.opened(); else StorePage.closed();
             return true;
         }
-        if (Draw.in(mx, my, px + 8, py + H - 62, SIDE - 16, 22)) { if (store) { store = false; StorePage.closed(); } profiles = !profiles; open = null; profileNote = ""; settingsScrollTo = settingsScroll = 0; Client.sync(); return true; }
+        if (Draw.in(mx, my, px + 9, py + H - 41, SIDE - 18, 19)) { if (store) { store = false; StorePage.closed(); } profiles = !profiles; profileNote = ""; settingsScrollTo = settingsScroll = 0; Client.sync(); return true; }
         if (store) { StorePage.click(mx, my, button, px + SIDE + 14, py + 14, W - SIDE - 28, H - 28); return true; }
         if (profiles) {
             int sx0 = px + SIDE + 14, sw = W - SIDE - 28, stop = py + 14 + 26;
@@ -475,36 +560,33 @@ public class ModMenuScreen extends Screen {
             }
             return true;
         }
-        if (Draw.in(mx, my, px + 8, py + H - 34, SIDE - 16, 24)) { minecraft.gui.setScreen(new HudEditorScreen()); return true; }
-
-        int x0 = px + SIDE + 14, y0 = py + 14, w = W - SIDE - 28;
-        if (open == null) {
-            if (Draw.in(mx, my, x0 + w - 120, y0, 120, 18)) { searching = true; return true; }
-            int top = y0 + 30, viewH = H - 44 - 30;
+        int x0 = gridX(), y0 = py + 12, w = gridW();
+        if (Draw.in(mx, my, x0 + w - 62, y0, 62, 18)) { minecraft.gui.setScreen(new HudEditorScreen()); return true; }
+        if (Draw.in(mx, my, x0, y0, w - 68, 18)) { searching = true; return true; }
+        int top = gridTop(), viewH = gridH();
+        if (mx < px + W - SETW) {
             if (my < top || my >= top + viewH) return true;
-            int cw = (w - GAP * 2) / 3;
+            float cw = (w - GAP * 2) / 3f;
             List<Module> list = visible();
             for (int i = 0; i < list.size(); i++) {
                 Module m = list.get(i);
                 float cx = x0 + (i % 3) * (cw + GAP), cy = top + (i / 3) * (CARD_H + GAP) - scroll;
                 if (!Draw.in(mx, my, cx, cy, cw, CARD_H)) continue;
-                boolean gear = !m.settings.isEmpty();
-                if (gear && (button == RIGHT || Draw.in(mx, my, cx, cy + CARD_H - 34, cw, 16))) { open = m; settingsScrollTo = settingsScroll = 0; }
-                else if (Draw.in(mx, my, cx, cy + CARD_H - 17, cw, 17)) m.toggle();
+                if (button == LEFT && Draw.in(mx, my, cx + cw - 30, cy, 30, 20)) m.toggle();
+                else { if (open != m) settingsScrollTo = settingsScroll = 0; open = m; }
                 return true;
             }
             return true;
         }
-
-        if (Draw.in(mx, my, x0, y0, 44, 18)) { open = null; return true; }
-        if (Draw.in(mx, my, x0 + w - 64, y0, 64, 18)) { open.toggle(); return true; }
-        int top = y0 + 42, viewH = H - 56 - 14;
-        if (my < top || my >= top + viewH) return true;
-        float sy = top - settingsScroll;
-        float rx = x0 + w - 10;
-        if (clickRows(open.settings, x0, sy, w, mx, my, button)) return true;
-        sy += open.settings.size() * ROW;
-        if (open instanceof HudModule && my >= sy && my < sy + ROW - 4 && mx >= x0 + w - 120) minecraft.gui.setScreen(new HudEditorScreen());
+        if (open == null) return true;
+        int sx = setX(), sw = setW();
+        if (Draw.in(mx, my, sx + sw - 24, py + 12, 26, 16)) { open.toggle(); return true; }
+        int stop = setTop();
+        if (my < stop || my >= stop + setH()) return true;
+        float sy = stop - settingsScroll;
+        if (clickRows(open.settings, sx, sy, sw, mx, my, button)) return true;
+        float end = rows(open.settings, sx, sy, sw, -9999, -9999, -2);
+        if (open instanceof HudModule && my >= end && my < end + LINE && mx >= sx + sw - 66) minecraft.gui.setScreen(new HudEditorScreen());
         return true;
     }
 
@@ -520,7 +602,7 @@ public class ModMenuScreen extends Screen {
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
         if (sy == 0) return false;
         float step = sy > 0 ? -36 : 36;
-        if (store) StorePage.wheel(step); else if (open == null && !profiles) scrollTo += step; else settingsScrollTo += step;
+        if (store) StorePage.wheel(step); else if (profiles) settingsScrollTo += step; else if (tx(mx) < px + W - SETW) scrollTo += step; else settingsScrollTo += step;
         return true;
     }
 
@@ -558,7 +640,7 @@ public class ModMenuScreen extends Screen {
             return true;
         }
         if (Client.keyMenu.is(key) && !searching) { close(); return true; }
-        if (open != null || profiles || store) return true;
+        if (profiles || store) return true;
         if (key == BACKSPACE) {
             if (!search.isEmpty()) search = search.substring(0, search.length() - 1);
             searching = true;
@@ -574,7 +656,7 @@ public class ModMenuScreen extends Screen {
             if (editing.value.length() + c.length() <= editing.max) editing.value += c;
             return true;
         }
-        if (open != null || profiles || store) return false;
+        if (profiles || store) return false;
         if (search.length() < 24) { search += c; searching = true; scrollTo = 0; }
         return true;
     }

@@ -2,6 +2,7 @@ package dev.lumen.mods;
 
 import dev.lumen.core.HudModule;
 import dev.lumen.core.Setting;
+import dev.lumen.util.Fnt;
 import dev.lumen.util.R;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
@@ -45,6 +46,7 @@ public class ItemCounter extends HudModule {
         }
         if (background.on()) box(0, 0, 44, 20);
         ArmorStatus.drawItem(icon, 2, 2);
-        R.mcText(String.valueOf(n), 22, 6, color.get(), true);
+        if (lumen()) Fnt.drawB(String.valueOf(n), 23, mid(0, 20, 9), 9, color.get());
+        else R.mcText(String.valueOf(n), 22, 6, color.get(), true);
     }
 }
