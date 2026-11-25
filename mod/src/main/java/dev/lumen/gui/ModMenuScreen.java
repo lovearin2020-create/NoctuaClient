@@ -25,7 +25,7 @@ import java.util.Map;
 
 /** The RSHIFT mod menu: category sidebar, searchable module grid and per-module settings. */
 public class ModMenuScreen extends GuiScreen {
-    private static final int W = 600, H = 330, SIDE = 98, SETW = 190, CARD_H = 40, GAP = 6, ROW = 26, LINE = 20;
+    private static final int W = 600, H = 330, SIDE = 98, SETW = 190, CARD_H = 46, GAP = 6, ROW = 26, LINE = 20;
     private static final net.minecraft.util.ResourceLocation MOON = new net.minecraft.util.ResourceLocation("lumen", "icon/moon.png");
     private static final int TEXT = 0xFFF2F4F8, MUTED = 0xFF8891A5, GREEN = 0xFF2FBF71, OFF = 0xFF2B303B, RED = 0xFFB0344E;
 
@@ -118,7 +118,7 @@ public class ModMenuScreen extends GuiScreen {
         float t = Math.min(1f, (System.currentTimeMillis() - opened) / 160f);
         float ease = 1f - (1f - t) * (1f - t) * (1f - t);
         if (mc.theWorld == null) { Fnt.transform(1f, 0, 0); Backdrop.draw(width, height, mx, my); Fnt.transform(fit(), width / 2f, height / 2f); }
-        R.rect(0, 0, width, height, R.alpha(mc.theWorld == null ? 0x55000000 : Theme.dim, ease));
+        R.rect(0, 0, width, height, R.alpha(mc.theWorld == null ? 0x55000000 : 0x60060910, ease));
 
         GlStateManager.pushMatrix();
         float s = (0.94f + 0.06f * ease) * fit();
@@ -127,16 +127,19 @@ public class ModMenuScreen extends GuiScreen {
         GlStateManager.translate(-width / 2f, -height / 2f, 0);
 
         float pr = 9;
-        R.roundRect(px, py, W, H, pr, 0xD805070C);
+        R.roundRect(px, py, W, H, pr, 0x78000000);
         R.gradient(px + 6, py + 1, W - 12, 12, 0x12FFFFFF, 0x00FFFFFF);
         clip(px, py, SIDE, H); // one extra layer per pane, so no seam where the pieces would overlap
-        R.roundRect(px, py, SIDE + 30, H, pr, 0x2E000000);
+        R.roundRect(px, py, SIDE + 30, H, pr, 0x30000000);
         R.endScissor();
         if (!store && !profiles) {
             clip(px + W - SETW, py, SETW, H);
-            R.roundRect(px + W - SETW - 30, py, SETW + 30, H, pr, 0x3A000000);
+            R.roundRect(px + W - SETW - 30, py, SETW + 30, H, pr, 0x40000000);
             R.endScissor();
+            R.rect(px + W - SETW, py, 1, H, 0x16FFFFFF);
         }
+        R.rect(px + SIDE, py, 1, H, 0x16FFFFFF);
+        R.roundOutline(px, py, W, H, pr, 1f, 0x1EFFFFFF);
 
         drawSidebar(mx, my);
         if (store) StorePage.draw(this, mx, my, px + SIDE + 14, py + 14, W - SIDE - 28, H - 28);
@@ -187,7 +190,7 @@ public class ModMenuScreen extends GuiScreen {
         Fnt.track("STORE", px + SIDE / 2f + 6, py + H - 58f, 7, Fnt.BOLD, 1.0f, 0xFFFF8F93);
         boolean ph = R.in(mx, my, px + 9, py + H - 41, SIDE - 18, 19);
         float sa = anim("settingsTab", profiles && !store ? 1f : ph ? 0.5f : 0f);
-        R.roundRect(px + 9, py + H - 41, SIDE - 18, 19, 5, R.mix(0x12FFFFFF, R.alpha(R.ACCENT, 0.9f), sa));
+        R.roundRect(px + 9, py + H - 41, SIDE - 18, 19, 5, R.mix(0x40000000, R.alpha(R.ACCENT, 0.9f), sa));
         Fnt.track("SETTINGS", px + SIDE / 2f, py + H - 35f, 7, Fnt.BOLD, 1.0f, profiles && !store || ph ? TEXT : MUTED);
         String ver = "Lumen Client " + Lumen.VERSION;
         Fnt.center(ver, px + SIDE / 2f, py + H - 16, 6, 0xFF6F778A);
@@ -208,7 +211,8 @@ public class ModMenuScreen extends GuiScreen {
     }
 
     private void toggle(float x, float y, float a) {
-        R.roundRect(x, y, 18, 10, 5, R.mix(0x24FFFFFF, R.ACCENT, a));
+        R.roundRect(x, y, 18, 10, 5, R.mix(0x55000000, R.ACCENT, a));
+        if (a < 0.5f) R.roundOutline(x, y, 18, 10, 5, 1f, 0x24FFFFFF);
         R.circle(x + 5 + a * 8, y + 5, 3.4f, R.mix(0xFFAAB2C5, 0xFFFFFFFF, a));
     }
 
@@ -221,8 +225,8 @@ public class ModMenuScreen extends GuiScreen {
         int x0 = gridX(), y0 = py + 12, w = gridW();
         // search box and the HUD editor button
         int bw = 62, sw = w - bw - 6;
-        R.roundRect(x0, y0, sw, 18, 5, 0x10FFFFFF);
-        if (searching) R.roundOutline(x0, y0, sw, 18, 5, 1f, R.ACCENT);
+        R.roundRect(x0, y0, sw, 18, 5, 0x40000000);
+        R.roundOutline(x0, y0, sw, 18, 5, 1f, searching ? R.ACCENT : 0x1CFFFFFF);
         String shown = search.isEmpty() && !searching ? "Search mods..." : Fnt.fit(search, 8, sw - 18) + (searching && System.currentTimeMillis() / 500 % 2 == 0 ? "|" : "");
         Fnt.draw(shown, x0 + 8, y0 + 5f, 8, search.isEmpty() && !searching ? 0xFF6F778A : TEXT);
         boolean eh = R.in(mx, my, x0 + w - bw, y0, bw, 18);
@@ -254,8 +258,8 @@ public class ModMenuScreen extends GuiScreen {
             if (cy + CARD_H < top || cy > top + viewH) continue;
             boolean hov = inView && R.in(mx, my, cx, cy, cw, CARD_H), sel = open == m;
             float h = anim(m, hov ? 1 : 0);
-            R.roundRect(cx, cy, cw, CARD_H, 6, sel ? R.alpha(R.ACCENT, 0.16f) : R.mix(0x14FFFFFF, 0x24FFFFFF, h));
-            if (sel) R.roundOutline(cx, cy, cw, CARD_H, 6, 1f, R.alpha(R.ACCENT, 0.8f));
+            R.roundRect(cx, cy, cw, CARD_H, 6, sel ? R.mix(0x48000000, R.alpha(R.ACCENT, 0.5f), 0.45f) : R.mix(0x40000000, 0x66000000, h));
+            R.roundOutline(cx, cy, cw, CARD_H, 6, 1f, sel ? R.alpha(R.ACCENT, 0.9f) : R.mix(0x1CFFFFFF, 0x38FFFFFF, h));
             float room = cw - 34, titleW = Fnt.widthB(m.name, 8);
             if (titleW <= room) Fnt.drawB(m.name, cx + 7, cy + 6, 8, TEXT);
             else {
@@ -270,6 +274,7 @@ public class ModMenuScreen extends GuiScreen {
             List<String> desc = wrap(m.description, 6, cw - 14, 2);
             for (int k = 0; k < desc.size(); k++) Fnt.draw(desc.get(k), cx + 7, cy + 18.5f + k * 8, 6, MUTED);
             toggle(cx + cw - 25, cy + 6, anim(m.name + "#on", m.isEnabled() ? 1 : 0));
+            if (!m.settings.isEmpty()) Fnt.draw("SETTINGS", cx + cw - 7 - Fnt.width("SETTINGS", 5, Fnt.REGULAR, 0.5f), cy + CARD_H - 9, 5, Fnt.REGULAR, 0.5f, 0xFF6F778A, 0xFF6F778A);
         }
         R.endScissor();
         if (max > 0) {
@@ -398,7 +403,7 @@ public class ModMenuScreen extends GuiScreen {
         if (open instanceof HudModule) {
             Fnt.draw("Position & size", x0, y + 6, 8, TEXT);
             boolean hov = inView && R.in(mx, my, x0 + w - 66, y + 3, 66, 14);
-            R.roundRect(x0 + w - 66, y + 3, 66, 14, 4, hov ? R.ACCENT : 0x14FFFFFF);
+            R.roundRect(x0 + w - 66, y + 3, 66, 14, 4, hov ? R.ACCENT : 0x40000000);
             Fnt.center("HUD Editor", x0 + w - 33, y + 6.5f, 7, TEXT);
             y += LINE;
         }
@@ -411,6 +416,8 @@ public class ModMenuScreen extends GuiScreen {
             R.roundRect(px + W - 6, top + (viewH - barH) * (settingsScroll / max), 2, barH, 1f, 0x40FFFFFF);
         }
     }
+
+    private static float segments(Setting.Mode m) { float t = 4; for (String o : m.options) t += Fnt.width(o, 6) + 9; return t; }
 
     /** The settings whose names share a "Group: " prefix with this one, as one block of chips. */
     private static String group(Setting st) {
@@ -443,8 +450,8 @@ public class ModMenuScreen extends GuiScreen {
                     if (click) { if (R.in(mx, my, cx, cy, cw, 12)) { b.value = !b.value; rowHit = true; } }
                     else {
                         float a = anim(b, b.value ? 1 : 0);
-                        R.roundRect(cx, cy, cw, 12, 4, R.mix(0x12FFFFFF, R.alpha(R.ACCENT, 0.22f), a));
-                        if (a > 0.5f) R.roundOutline(cx, cy, cw, 12, 4, 1f, R.alpha(R.ACCENT, 0.65f));
+                        R.roundRect(cx, cy, cw, 12, 4, R.mix(0x40000000, R.alpha(R.ACCENT, 0.3f), a));
+                        R.roundOutline(cx, cy, cw, 12, 4, 1f, R.mix(0x1CFFFFFF, R.alpha(R.ACCENT, 0.8f), a));
                         Fnt.draw(label, cx + 5, cy + 3.2f, 6, R.mix(MUTED, 0xFFCFE0FF, a));
                     }
                     cx += cw + 4;
@@ -465,12 +472,28 @@ public class ModMenuScreen extends GuiScreen {
                 if (hit) { if (mx >= sx - 6 && mx <= sx + sw + 6) { dragging = n; dragX = sx; dragW = sw; } rowHit = true; }
                 else if (paint) {
                     float f = (float) ((n.value - n.min) / (n.max - n.min));
-                    R.roundRect(sx, y + 9f, sw, 2, 1f, 0x24FFFFFF);
+                    R.roundRect(sx, y + 9f, sw, 2, 1f, 0x66000000);
                     R.roundRect(sx, y + 9f, sw * f, 2, 1f, R.ACCENT);
                     R.circle(sx + sw * f, y + 10, 3.6f, 0xFFFFFFFF);
                     String v = n.display();
                     Fnt.draw(v, rx - Fnt.width(v, 7), y + 6.5f, 7, MUTED);
                 }
+            } else if (st instanceof Setting.Mode && segments((Setting.Mode) st) <= w * 0.66f) {
+                // few short choices: all of them side by side, the chosen one filled
+                Setting.Mode m = (Setting.Mode) st;
+                float total = segments(m), bx = rx - total;
+                if (paint) R.roundRect(bx, y + 3, total, 14, 4, 0x40000000);
+                float ox = bx + 2;
+                for (int i = 0; i < m.options.length; i++) {
+                    float sw = Fnt.width(m.options[i], 6) + 9;
+                    if (hit && mx >= ox && mx < ox + sw) m.index = i;
+                    if (paint) {
+                        if (i == m.index) R.roundRect(ox, y + 5, sw, 10, 3, R.ACCENT);
+                        Fnt.draw(m.options[i], ox + 4.5f, y + 7.2f, 6, i == m.index ? 0xFFFFFFFF : MUTED);
+                    }
+                    ox += sw;
+                }
+                if (hit) rowHit = true;
             } else if (st instanceof Setting.Mode || st instanceof Setting.Key) {
                 float bw = Math.min(110, w * 0.5f), bx = rx - bw;
                 if (hit) {
@@ -478,7 +501,7 @@ public class ModMenuScreen extends GuiScreen {
                     rowHit = true;
                 } else if (paint) {
                     boolean hov = R.in(mx, my, bx, y + 3, bw, 14), wait = binding == st;
-                    R.roundRect(bx, y + 3, bw, 14, 4, wait ? R.ACCENT : hov ? 0x26FFFFFF : 0x14FFFFFF);
+                    R.roundRect(bx, y + 3, bw, 14, 4, wait ? R.ACCENT : hov ? 0x66000000 : 0x40000000);
                     if (st instanceof Setting.Mode) {
                         Fnt.draw("<", bx + 5, y + 6f, 8, MUTED);
                         Fnt.draw(">", bx + bw - 9, y + 6f, 8, MUTED);
@@ -494,8 +517,8 @@ public class ModMenuScreen extends GuiScreen {
                 if (hit) { if (mx >= bx) editing = ts; rowHit = true; }
                 else if (paint) {
                     boolean focus = editing == ts;
-                    R.roundRect(bx, y + 3, bw, 14, 4, 0x14FFFFFF);
-                    if (focus) R.roundOutline(bx, y + 3, bw, 14, 4, 1f, R.ACCENT);
+                    R.roundRect(bx, y + 3, bw, 14, 4, 0x40000000);
+                    R.roundOutline(bx, y + 3, bw, 14, 4, 1f, focus ? R.ACCENT : 0x1CFFFFFF);
                     String shown = ts.value;
                     if (!focus && ts.name.endsWith("Key") && shown.length() > 4) shown = shown.substring(0, 4) + " ********"; // keys are not left readable on screen
                     while (shown.length() > 0 && Fnt.width(shown, 7) > bw - 12) shown = shown.substring(1);

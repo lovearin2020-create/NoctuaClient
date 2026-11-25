@@ -26,7 +26,7 @@ import org.lwjgl.input.Keyboard;
 
 @Mod(modid = Lumen.MODID, name = Lumen.NAME, version = Lumen.VERSION, clientSideOnly = true, acceptedMinecraftVersions = "[1.8.9]")
 public class Lumen {
-    public static final String MODID = "lumen", NAME = "Lumen Client", VERSION = "2.6.0";
+    public static final String MODID = "lumen", NAME = "Lumen Client", VERSION = "2.6.1";
 
     public static ModuleManager modules;
 
@@ -92,7 +92,7 @@ public class Lumen {
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onOverlay(RenderGameOverlayEvent.Post e) {
         if (e.type != RenderGameOverlayEvent.ElementType.ALL) return;
-        if (mc.gameSettings.showDebugInfo || mc.currentScreen instanceof HudEditorScreen) return;
+        if (mc.gameSettings.showDebugInfo || mc.currentScreen instanceof HudEditorScreen || mc.currentScreen instanceof dev.lumen.gui.ModMenuScreen) return; // the menu is see-through: no HUD under it
         for (Module m : modules.all) {
             if (m.isEnabled() && m instanceof HudModule) ((HudModule) m).render(e.resolution, false);
         }
