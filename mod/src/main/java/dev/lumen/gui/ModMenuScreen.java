@@ -34,6 +34,8 @@ public class ModMenuScreen extends GuiScreen {
     /** For screenshots and tests: opens with this mod's settings showing. */
     public ModMenuScreen select(Module m) { open = m; return this; }
     private boolean rowHit;
+    /** Opens straight on the Store. */
+    public ModMenuScreen openStore() { store = true; StorePage.opened(); return this; }
     private String search = "";
     private boolean searching;
     private float scroll, scrollTo, settingsScroll, settingsScrollTo;
