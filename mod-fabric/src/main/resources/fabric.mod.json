@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "lumen",
+  "version": "${version}",
+  "name": "Lumen Client",
+  "description": "Clean PvP client. Press RSHIFT in game to open the mod menu.",
+  "authors": ["Lumen"],
+  "icon": "assets/lumen/icon/lumen-128.png",
+  "environment": "client",
+  "entrypoints": { "client": ["dev.lumen.fabric.Lumen"] },
+  "mixins": ["lumen.mixins.json", "lumen.version.mixins.json"],
+  "depends": { "fabricloader": ">=0.17.0", "minecraft": "${mc}", "java": ">=25" }
+}

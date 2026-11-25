@@ -20,6 +20,12 @@ public final class Config {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public static File dir() {
+        // The Lumen launcher points every version at one shared folder; otherwise the game folder is used.
+        String shared = System.getProperty("lumen.config.dir");
+        if (shared != null && !shared.trim().isEmpty()) {
+            File s = new File(shared.trim());
+            if (s.isDirectory() || s.mkdirs()) return s;
+        }
         File d = new File(Minecraft.getMinecraft().mcDataDir, "config/lumen");
         if (!d.exists()) d.mkdirs();
         return d;
@@ -54,8 +60,8 @@ public final class Config {
         name = clean(name);
         if (name.isEmpty()) return false;
         activeProfile = name;
-        write(new File(profileDir(), name + ".json"));
         save();
+        write(new File(profileDir(), name + ".json"), file());
         return true;
     }
 
@@ -64,7 +70,8 @@ public final class Config {
         if (!f.exists()) return false;
         read(f);
         activeProfile = clean(name);
-        save();
+        // The profile's entries for mods and settings this version does not have are carried over as well.
+        write(file(), f);
         return true;
     }
 
@@ -74,29 +81,65 @@ public final class Config {
         if (activeProfile.equals(clean(name))) { activeProfile = ""; save(); }
     }
 
-    public static void save() { write(file()); }
+    public static void save() { write(file(), file()); }
 
-    private static void write(File target) {
+    /** If a save was interrupted before the swap, the finished temporary file is used. */
+    private static void recover(File f) {
         try {
-            JsonObject root = new JsonObject();
-            JsonObject client = new JsonObject();
-            client.addProperty("font", dev.lumen.util.Fnt.minecraft ? "minecraft" : "smooth");
+            File tmp = new File(f.getParentFile(), f.getName() + ".tmp");
+            if (!f.exists() && tmp.exists()) tmp.renameTo(f);
+        } catch (Throwable ignored) {}
+    }
+
+    private static JsonObject parse(File f) {
+        if (f != null) recover(f);
+        if (f == null || !f.exists()) return null;
+        try {
+            Reader r = new InputStreamReader(new FileInputStream(f), "UTF-8");
+            try { return new JsonParser().parse(r).getAsJsonObject(); } finally { r.close(); }
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private static JsonObject child(JsonObject parent, String key) {
+        JsonElement e = parent.get(key);
+        return e != null && e.isJsonObject() ? e.getAsJsonObject() : new JsonObject();
+    }
+
+    /**
+     * Writes the settings on top of what {@code base} already contains. The same file is shared by the
+     * 1.8.9, 26.2 and 26.3 versions of Lumen, so mods and settings this version does not know are kept as they are.
+     */
+    private static void write(File target, File base) {
+        try {
+            JsonObject root = parse(base);
+            if (root == null) root = new JsonObject();
+            JsonObject client = child(root, "_client");
+            Client.save(client);
             client.addProperty("profile", activeProfile);
             root.add("_client", client);
             for (Module m : Lumen.modules.all) {
-                JsonObject o = new JsonObject();
+                JsonObject o = child(root, m.name);
                 o.addProperty("enabled", m.isEnabled());
                 if (m instanceof HudModule) {
                     HudModule h = (HudModule) m;
                     o.addProperty("ax", h.ax); o.addProperty("ay", h.ay); o.addProperty("ox", h.ox); o.addProperty("oy", h.oy); o.addProperty("scale", h.scale);
                 }
-                JsonObject s = new JsonObject();
+                JsonObject s = child(o, "settings");
                 for (Setting st : m.settings) s.add(st.name, st.save());
                 o.add("settings", s);
                 root.add(m.name, o);
             }
-            Writer w = new OutputStreamWriter(new FileOutputStream(target), "UTF-8");
+            File tmp = new File(target.getParentFile(), target.getName() + ".tmp");
+            Writer w = new OutputStreamWriter(new FileOutputStream(tmp), "UTF-8");
             try { GSON.toJson(root, w); } finally { w.close(); }
+            // Swap the finished file in with a single rename, so closing the game mid-save can never leave no file at all.
+            try {
+                java.nio.file.Files.move(tmp.toPath(), target.toPath(), java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (Throwable notAtomic) {
+                java.nio.file.Files.move(tmp.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (Throwable t) {
             System.err.println("[Lumen] Could not save config: " + t);
         }
@@ -111,6 +154,7 @@ public final class Config {
     }
 
     private static void read(File f) {
+        recover(f);
         JsonObject root = null;
         if (f.exists()) {
             try {
@@ -121,7 +165,7 @@ public final class Config {
             }
         }
         try {
-            if (root != null && root.has("_client")) dev.lumen.util.Fnt.minecraft = "minecraft".equals(root.getAsJsonObject("_client").get("font").getAsString());
+            if (root != null && root.has("_client")) Client.load(root.getAsJsonObject("_client"));
         } catch (Throwable ignored) {}
         for (Module m : Lumen.modules.all) {
             boolean enabled = Lumen.modules.defaultOn.contains(m);

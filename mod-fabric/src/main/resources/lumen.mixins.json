@@ -1,0 +1,10 @@
+{
+  "required": true,
+  "package": "dev.lumen.fabric.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": ["HudMixin", "MinecraftMixin", "KeyboardHandlerMixin", "MouseHandlerMixin", "ChatListenerMixin", "GameModeMixin", "CameraMixin", "GameRendererMixin",
+    "PlayerTabOverlayMixin", "GuiGraphicsExtractorMixin", "LightmapMixin", "AbstractClientPlayerMixin", "ScreenEffectRendererMixin", "LivingEntityMixin",
+    "OverlayTextureAccessor", "LivingEntityRendererInvoker", "AvatarRendererMixin", "FontMixin", "AvatarRenderStateMixin", "EntityRendererMixin", "BlockEntityRenderDispatcherMixin", "ParticleEngineMixin",
+    "FramerateLimitTrackerMixin", "GuiMixin", "LevelRendererMixin", "ChatScreenMixin", "ScreenshotMixin", "ClientPacketListenerMixin", "EditBoxMixin", "StringDecomposerMixin"],
+  "injectors": { "defaultRequire": ${require} }
+}

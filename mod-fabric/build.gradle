@@ -1,0 +1,41 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+// One source tree, two jars: code that differs between 26.2 and 26.3 lives in src/v262 and src/v263.
+def mcv = project.minecraft_version
+def vdir = 'v' + mcv.replace('.', '')
+
+base { archivesName = 'LumenClient-fabric' }
+
+sourceSets {
+	main {
+		java { srcDir "src/${vdir}/java" }
+		resources { srcDir "src/${vdir}/resources" }
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${mcv}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	// No Fabric API: the mod only needs Fabric Loader (and works alongside Sodium).
+}
+
+processResources {
+	// mixin_require=1 is only used for test builds: every hook must then find its target or the game refuses to start.
+	def props = [version: project.version, mc: mcv, require: (project.findProperty('mixin_require') ?: '0')]
+	inputs.properties props
+	filesMatching(["fabric.mod.json", "*.mixins.json"]) { expand props }
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+	it.options.encoding = 'UTF-8'
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar { archiveVersion = "${project.version}+mc${mcv}" }

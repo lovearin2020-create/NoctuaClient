@@ -16,11 +16,14 @@ import net.minecraftforge.fml.relauncher.ReflectionHelper;
 import java.lang.reflect.Field;
 import java.util.List;
 
-/** Owns the game's single post-processing slot for Menu Blur and Motion Blur. */
+/** Owns the game's single post-processing slot for Menu Blur, Motion Blur and Vibrance. */
 public final class Shaders {
     private static final Minecraft mc = Minecraft.getMinecraft();
     private static final ResourceLocation BLUR = new ResourceLocation("lumen", "shaders/post/menu_blur.json");
     private static final ResourceLocation MOTION = new ResourceLocation("lumen", "shaders/post/motion_blur.json");
+    private static final ResourceLocation VIBRANCE = new ResourceLocation("lumen", "shaders/post/vibrance.json");
+    private static final ResourceLocation MOTION_VIBRANCE = new ResourceLocation("lumen", "shaders/post/motion_vibrance.json");
+    private float lastVibrance = -1;
     private ResourceLocation current;
     private long retryAt;
     private float lastAmount = -1;
@@ -37,7 +40,11 @@ public final class Shaders {
         if (mc.theWorld != null && OpenGlHelper.shadersSupported && !fastRender()) {
             boolean menu = mc.currentScreen != null && !(mc.currentScreen instanceof GuiChat);
             if (menu && MenuBlur.INSTANCE != null && MenuBlur.INSTANCE.isEnabled()) want = BLUR;
-            else if (MotionBlur.INSTANCE != null && MotionBlur.INSTANCE.isEnabled()) want = MOTION;
+            else {
+                boolean motion = MotionBlur.INSTANCE != null && MotionBlur.INSTANCE.isEnabled();
+                boolean vibrance = dev.lumen.mods.Vibrance.INSTANCE != null && dev.lumen.mods.Vibrance.INSTANCE.isEnabled();
+                want = motion && vibrance ? MOTION_VIBRANCE : motion ? MOTION : vibrance ? VIBRANCE : null;
+            }
         }
         try {
             if (want == null) {
@@ -47,12 +54,16 @@ public final class Shaders {
             if (want != current || !mc.entityRenderer.isShaderActive()) {
                 if (System.currentTimeMillis() < retryAt) return;
                 mc.entityRenderer.loadShader(want);
-                if (mc.entityRenderer.isShaderActive()) { current = want; lastAmount = -1; }
+                if (mc.entityRenderer.isShaderActive()) { current = want; lastAmount = -1; lastVibrance = -1; }
                 else { current = null; retryAt = System.currentTimeMillis() + 5000; }
             }
-            if (current == MOTION) {
+            if (current == MOTION || current == MOTION_VIBRANCE) {
                 float amount = 0.35f + MotionBlur.INSTANCE.amount.f() * 0.07f;
-                if (amount != lastAmount) { setAmount(amount); lastAmount = amount; }
+                if (amount != lastAmount) { set("Amount", amount); lastAmount = amount; }
+            }
+            if (current == VIBRANCE || current == MOTION_VIBRANCE) {
+                float v = dev.lumen.mods.Vibrance.INSTANCE.amount.f() / 100f;
+                if (v != lastVibrance) { set("Vibrance", v); lastVibrance = v; }
             }
         } catch (Throwable t) {
             current = null;
@@ -61,12 +72,12 @@ public final class Shaders {
     }
 
     @SuppressWarnings("unchecked")
-    private void setAmount(float amount) throws Exception {
+    private void set(String uniform, float amount) throws Exception {
         ShaderGroup group = mc.entityRenderer.getShaderGroup();
         if (group == null) return;
         if (listField == null) listField = ReflectionHelper.findField(ShaderGroup.class, "listShaders", "field_148031_d");
         for (Shader s : (List<Shader>) listField.get(group)) {
-            ShaderUniform u = s.getShaderManager().getShaderUniform("Amount");
+            ShaderUniform u = s.getShaderManager().getShaderUniform(uniform);
             if (u != null) u.set(amount);
         }
     }

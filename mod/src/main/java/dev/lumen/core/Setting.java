@@ -66,6 +66,18 @@ public abstract class Setting {
         public void load(JsonElement e) { String s = e.getAsString(); value = s.length() > max ? s.substring(0, max) : s; }
     }
 
+    /** A key, stored by a name that is the same in every game version (see Keys). */
+    public static class Key extends Setting {
+        public String key;
+        private int code = Integer.MIN_VALUE;
+        public Key(String name, String def) { super(name); this.key = def; }
+        public int code() { if (code == Integer.MIN_VALUE) code = dev.lumen.util.Keys.code(key); return code; }
+        public void set(String k) { key = k == null ? "NONE" : k; code = Integer.MIN_VALUE; }
+        public boolean is(int pressed) { return pressed > 0 && pressed == code(); }
+        public JsonElement save() { return new JsonPrimitive(key); }
+        public void load(JsonElement e) { set(e.getAsString()); }
+    }
+
     public static class Col extends Setting {
         public static final int[] PALETTE = {
                 0xFFFFFFFF, 0xFF9AA3B5, 0xFF000000, 0xFFFF5C5C, 0xFFFF9F43, 0xFFFFD84D,

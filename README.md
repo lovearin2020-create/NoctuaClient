@@ -1,5 +1,9 @@
 # Lumen Client
 
+> **Status:** the launcher in `launcher/` is no longer developed. Lumen is now published as mods only:
+> `mod/` (Minecraft 1.8.9, Forge), `mod-fabric/` (Minecraft 26.2 / 26.3, Fabric) and ready-built jars in `dist/`.
+> Put the jar for your version in the game's `mods` folder; press **Right Shift** in game for the menu.
+
 A personal, non-commercial launcher and PvP client for **Minecraft: Java Edition**.
 
 - `launcher/` – the desktop launcher, written in Rust (UI with [egui](https://github.com/emilk/egui)).

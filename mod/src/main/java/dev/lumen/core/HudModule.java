@@ -13,10 +13,33 @@ public abstract class HudModule extends Module {
     public float ox, oy;
     public float scale = 1f;
 
-    protected HudModule(String name, String description, int ax, float ox, int ay, float oy) {
-        super(name, description, Category.HUD);
+    protected HudModule(String name, String description, int ax, float ox, int ay, float oy) { this(name, description, Category.HUD, ax, ox, ay, oy); }
+
+    /** For HUD elements that belong in another tab of the menu (e.g. Hypixel). */
+    protected HudModule(String name, String description, Category category, int ax, float ox, int ay, float oy) {
+        super(name, description, category);
         this.ax = ax; this.ox = ox; this.ay = ay; this.oy = oy;
+        if (hasLumenStyle()) { lumenHud = new Setting.Bool("Lumen HUD", true); settings.add(lumenHud); }
     }
+
+    /** The switch between the Lumen look (soft dark panel, Lumen's own letters) and the classic one. */
+    private Setting.Bool lumenHud;
+    /** Elements that only have one look say no. */
+    protected boolean hasLumenStyle() { return true; }
+    protected boolean lumen() { return lumenHud != null && lumenHud.on(); }
+    /** The Lumen panel: the one Direction HUD and Stats Overlay sit on. */
+    protected static void panel(float x, float y, float w, float h) {
+        R.roundRect(x, y, w, h, 6, 0x78000000);
+        R.gradient(x + 4, y + 1, w - 8, Math.min(9, h / 2), 0x14FFFFFF, 0x00FFFFFF);
+    }
+    /** The box behind an element, in whichever look is chosen. */
+    protected void box(float x, float y, float w, float h) { if (lumen()) panel(x, y, w, h); else R.roundRect(x, y, w, h, 3, 0x70000000); }
+
+    /** Set by elements that had no box of their own: an optional panel behind them. */
+    private Setting.Bool panel;
+    protected void optionalBackground() { panel = bool("Background", false); }
+    /** Whether the element is drawing anything right now (the panel is hidden with it). */
+    protected boolean showing(boolean editing) { return true; }
 
     /** Unscaled size of the element. */
     public abstract float width();
@@ -47,6 +70,7 @@ public abstract class HudModule extends Module {
         GlStateManager.pushMatrix();
         GlStateManager.translate(Math.round(px(sr)), Math.round(py(sr)), 0);
         GlStateManager.scale(scale, scale, 1);
+        if (panel != null && panel.on() && showing(editing)) box(-3, -3, width() + 6, height() + 6);
         try { draw(editing); } catch (Throwable ignored) {}
         GlStateManager.popMatrix();
         R.reset();

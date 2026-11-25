@@ -26,17 +26,35 @@ import org.lwjgl.input.Keyboard;
 
 @Mod(modid = Lumen.MODID, name = Lumen.NAME, version = Lumen.VERSION, clientSideOnly = true, acceptedMinecraftVersions = "[1.8.9]")
 public class Lumen {
-    public static final String MODID = "lumen", NAME = "Lumen Client", VERSION = "2.1.0";
+    public static final String MODID = "lumen", NAME = "Lumen Client", VERSION = "2.6.0";
 
     public static ModuleManager modules;
-    public static final KeyBinding MENU_KEY = new KeyBinding("Open Mod Menu", Keyboard.KEY_RSHIFT, NAME);
-    public static final KeyBinding ZOOM_KEY = new KeyBinding("Zoom", Keyboard.KEY_C, NAME);
 
     private static final Minecraft mc = Minecraft.getMinecraft();
+
+    /** The Lumen icon on the game window and task bar. */
+    private static void windowIcon() {
+        try {
+            java.nio.ByteBuffer[] icons = new java.nio.ByteBuffer[2];
+            String[] files = {"lumen-16.png", "lumen-32.png"};
+            for (int i = 0; i < files.length; i++) {
+                java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(Lumen.class.getResourceAsStream("/assets/lumen/icon/" + files[i]));
+                int w = img.getWidth(), h = img.getHeight();
+                int[] argb = img.getRGB(0, 0, w, h, null, 0, w);
+                java.nio.ByteBuffer b = java.nio.ByteBuffer.allocateDirect(w * h * 4);
+                for (int p : argb) b.put((byte) (p >> 16)).put((byte) (p >> 8)).put((byte) p).put((byte) (p >>> 24));
+                b.flip();
+                icons[i] = b;
+            }
+            org.lwjgl.opengl.Display.setIcon(icons);
+        } catch (Throwable ignored) {}
+    }
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent e) {
         modules = new ModuleManager();
+        dev.lumen.online.Online.start();
+        windowIcon();
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(new Clicks());
         MinecraftForge.EVENT_BUS.register(new dev.lumen.core.Shaders());
@@ -49,12 +67,13 @@ public class Lumen {
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent e) {
-        ClientRegistry.registerKeyBinding(MENU_KEY);
-        ClientRegistry.registerKeyBinding(ZOOM_KEY);
+        net.minecraftforge.client.ClientCommandHandler.instance.registerCommand(new dev.lumen.mods.Screenshots.Command());
         try {
             for (RenderPlayer rp : mc.getRenderManager().getSkinMap().values()) {
                 rp.addLayer(new CapeLayer(rp));
                 rp.addLayer(new WingsLayer(rp));
+                rp.addLayer(new dev.lumen.cosmetics.HatLayer(rp));
+                rp.addLayer(new dev.lumen.cosmetics.ShieldLayer(rp));
             }
         } catch (Throwable t) {
             System.err.println("[Lumen] Cosmetics unavailable: " + t);
@@ -63,7 +82,11 @@ public class Lumen {
 
     @SubscribeEvent
     public void onKey(InputEvent.KeyInputEvent e) {
-        if (MENU_KEY.isPressed() && mc.currentScreen == null) mc.displayGuiScreen(new ModMenuScreen());
+        // Keys are set in the menu's Settings tab (dev.lumen.core.Client), not in the game's Controls screen.
+        if (!Keyboard.getEventKeyState() || Keyboard.isRepeatEvent() || mc.currentScreen != null) return;
+        int key = Keyboard.getEventKey();
+        if (dev.lumen.core.Client.keyMenu.is(key)) mc.displayGuiScreen(new ModMenuScreen());
+        else if (dev.lumen.core.Client.keyQuickPlay.is(key) && dev.lumen.mods.QuickPlay.INSTANCE != null && dev.lumen.mods.QuickPlay.INSTANCE.isEnabled()) dev.lumen.mods.QuickPlay.INSTANCE.open();
     }
 
     @SubscribeEvent(priority = EventPriority.LOW)

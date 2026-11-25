@@ -15,4 +15,7 @@ public abstract class MixinGuiIngame {
     private void lumen$scoreboard(ScoreObjective objective, ScaledResolution res, CallbackInfo ci) {
         if (Hooks.scoreboard(objective, res)) ci.cancel();
     }
+
+    @Inject(method = "displayTitle", at = @At("HEAD"))
+    private void lumen$title(String title, String subTitle, int in, int stay, int out, CallbackInfo ci) { Hooks.title(title); }
 }

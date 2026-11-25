@@ -1,0 +1,10 @@
+{
+    "targets": [ "swap", "previous" ],
+    "passes": [
+        { "name": "lumen_motion", "intarget": "minecraft:main", "outtarget": "swap",
+          "auxtargets": [ { "name": "PrevSampler", "id": "previous" } ],
+          "uniforms": [ { "name": "Amount", "values": [ 0.5 ] } ] },
+        { "name": "blit", "intarget": "swap", "outtarget": "previous" },
+        { "name": "lumen_vibrance", "intarget": "swap", "outtarget": "minecraft:main", "uniforms": [ { "name": "Vibrance", "values": [ 0.5 ] } ] }
+    ]
+}

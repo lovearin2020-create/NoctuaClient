@@ -100,4 +100,45 @@ public final class Hooks {
     public static boolean cullTile(double distSq) { return on(Performance.INSTANCE) && Performance.INSTANCE.cullTile(distSq); }
 
     public static boolean dropParticle() { return on(Performance.INSTANCE) && Performance.INSTANCE.dropParticle(); }
+
+    public static boolean textKey(net.minecraft.client.gui.GuiTextField f, char c, int key) {
+        try { return on(KoreanInput.INSTANCE) && KoreanInput.INSTANCE.key(f, c, key); } catch (Throwable t) { return false; }
+    }
+
+    private static final net.minecraft.util.ResourceLocation NAME_MARK = new net.minecraft.util.ResourceLocation("lumen", "icon/name.png");
+    private static boolean markSmooth;
+
+    /** Draws the Lumen mark where the font renderer is about to put a character. Its own shadow pass gets a dark copy. */
+    public static void nameMark(float x, float y, float r, float g, float b, float a) {
+        boolean shadow = r < 0.27f && g < 0.27f && b < 0.27f;
+        net.minecraft.client.Minecraft.getMinecraft().getTextureManager().bindTexture(NAME_MARK);
+        if (!markSmooth) {
+            markSmooth = true;
+            org.lwjgl.opengl.GL11.glTexParameteri(org.lwjgl.opengl.GL11.GL_TEXTURE_2D, org.lwjgl.opengl.GL11.GL_TEXTURE_MIN_FILTER, org.lwjgl.opengl.GL11.GL_LINEAR);
+            org.lwjgl.opengl.GL11.glTexParameteri(org.lwjgl.opengl.GL11.GL_TEXTURE_2D, org.lwjgl.opengl.GL11.GL_TEXTURE_MAG_FILTER, org.lwjgl.opengl.GL11.GL_LINEAR);
+        }
+        if (shadow) GlStateManager.color(0f, 0f, 0f, a * 0.5f); else GlStateManager.color(1f, 1f, 1f, a);
+        float y0 = y - 0.5f;
+        org.lwjgl.opengl.GL11.glBegin(org.lwjgl.opengl.GL11.GL_QUADS);
+        org.lwjgl.opengl.GL11.glTexCoord2f(0f, 0f); org.lwjgl.opengl.GL11.glVertex3f(x, y0, 0f);
+        org.lwjgl.opengl.GL11.glTexCoord2f(0f, 1f); org.lwjgl.opengl.GL11.glVertex3f(x, y0 + 8f, 0f);
+        org.lwjgl.opengl.GL11.glTexCoord2f(1f, 1f); org.lwjgl.opengl.GL11.glVertex3f(x + 8f, y0 + 8f, 0f);
+        org.lwjgl.opengl.GL11.glTexCoord2f(1f, 0f); org.lwjgl.opengl.GL11.glVertex3f(x + 8f, y0, 0f);
+        org.lwjgl.opengl.GL11.glEnd();
+        GlStateManager.color(r, g, b, a);
+    }
+
+    public static String nick(String s) { 
+        // Colour first, hide second: the Lumen+ colour then stays on whatever Nick Hider shows instead of your name.
+        s = dev.lumen.online.Online.colorize(s);
+        return on(NickHider.INSTANCE) ? NickHider.INSTANCE.apply(s) : s;
+    }
+
+    public static net.minecraft.util.IChatComponent screenshot(net.minecraft.util.IChatComponent c) { return on(Screenshots.INSTANCE) ? Screenshots.INSTANCE.decorate(c) : c; }
+
+    public static boolean chatPrint(net.minecraft.client.gui.GuiNewChat chat, net.minecraft.util.IChatComponent c) {
+        try { return on(ChatTweaks.INSTANCE) && ChatTweaks.INSTANCE.print(chat, c); } catch (Throwable t) { return false; }
+    }
+
+    public static void title(String title) { if (on(SessionStats.INSTANCE)) SessionStats.INSTANCE.onTitle(title); }
 }

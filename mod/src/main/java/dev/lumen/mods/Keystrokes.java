@@ -14,12 +14,14 @@ public class Keystrokes extends HudModule {
     private final Setting.Bool mouse = bool("Mouse Buttons", true);
     private final Setting.Bool showCps = bool("Show CPS", true);
     private final Setting.Bool space = bool("Space Bar", true);
+    private final Setting.Bool background = bool("Background", true);
     private final Setting.Col text = col("Text Color", 0xFFFFFFFF);
     private final Setting.Col pressed = col("Pressed Color", 0xFFFFFFFF);
     private final float[] fade = new float[7];
 
     public Keystrokes() { super("Keystrokes", "Movement keys and mouse buttons.", START, 4, CENTER, -10); }
 
+    protected boolean hasLumenStyle() { return false; }
     public float width() { return 70; }
     public float height() { return 46 + (mouse.on() ? 24 : 0) + (space.on() ? 14 : 0); }
 
@@ -32,8 +34,10 @@ public class Keystrokes extends HudModule {
     private void key(int i, String label, String sub, boolean down, float x, float y, float w, float h) {
         fade[i] = Util.lerp(fade[i], down ? 1 : 0, 0.3f);
         int bg = R.mix(0x70000000, R.alpha(pressed.get(), 0.75f), fade[i]);
-        R.roundRect(x, y, w, h, 3, bg);
-        int tc = R.mix(text.get(), 0xFF101010, fade[i]);
+        // without the boxes a pressed key is shown by its colour alone
+        if (background.on()) R.roundRect(x, y, w, h, 3, bg);
+        else if (fade[i] > 0.02f) R.roundRect(x, y, w, h, 3, R.alpha(pressed.get(), 0.3f * fade[i]));
+        int tc = background.on() ? R.mix(text.get(), 0xFF101010, fade[i]) : R.mix(text.get(), pressed.get(), fade[i]);
         if (label != null) {
             float ty = sub == null ? y + (h - 8) / 2f : y + 3;
             R.mcText(label, x + (w - mc.fontRendererObj.getStringWidth(label)) / 2f, ty, tc, false);

@@ -23,7 +23,11 @@
     "MixinGuiPlayerTabOverlay",
     "MixinGuiIngameForge",
     "MixinRenderEntityItem",
-    "MixinEntityLivingBase"
+    "MixinEntityLivingBase",
+    "MixinGuiTextField",
+    "MixinFontRenderer",
+    "MixinResourceManager",
+    "MixinScreenShotHelper"
   ],
   "injectors": {
     "defaultRequire": 0

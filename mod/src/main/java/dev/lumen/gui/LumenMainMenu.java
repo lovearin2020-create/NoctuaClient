@@ -73,12 +73,27 @@ public class LumenMainMenu extends GuiScreen {
         Fnt.draw("Lumen Client " + Lumen.VERSION + "  |  Minecraft 1.8.9", 6, height - 14, 8, R.alpha(0xFF9AA8C7, f));
         String c = "Copyright Mojang AB. Do not distribute!";
         Fnt.draw(c, width - 6 - Fnt.width(c, 8), height - 14, 8, R.alpha(0xFF9AA8C7, f));
+        if (essential()) {
+            boolean h = R.in(mx, my, width - 128, 8, 120, 18);
+            R.roundRect(width - 128, 8, 120, 18, 6, R.alpha(h ? 0xE64C8DFF : 0x30FFFFFF, f));
+            Fnt.center("Accounts (Essential)", width - 68, 13, 8, R.alpha(0xFFFFFFFF, f));
+        }
         R.reset();
         GlStateManager.color(1, 1, 1, 1);
     }
 
+    /** Essential adds its account manager to the vanilla title screen; this button takes you there. */
+    private static boolean essential() {
+        try { return net.minecraftforge.fml.common.Loader.isModLoaded("essential"); } catch (Throwable t) { return false; }
+    }
+
     protected void mouseClicked(int mx, int my, int button) throws IOException {
         if (button != 0) return;
+        if (essential() && R.in(mx, my, width - 128, 8, 120, 18)) {
+            dev.lumen.mods.MainMenu.vanillaOnce = true;
+            mc.displayGuiScreen(new net.minecraft.client.gui.GuiMainMenu());
+            return;
+        }
         for (int i = 0; i < LABELS.length; i++) {
             if (!R.in(mx, my, bx(), by(i), bw(), 23)) continue;
             switch (i) {
@@ -94,6 +109,6 @@ public class LumenMainMenu extends GuiScreen {
     }
 
     protected void keyTyped(char c, int key) {
-        if (key == Lumen.MENU_KEY.getKeyCode()) mc.displayGuiScreen(new ModMenuScreen());
+        if (dev.lumen.core.Client.keyMenu.is(key)) mc.displayGuiScreen(new ModMenuScreen());
     }
 }

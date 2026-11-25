@@ -105,6 +105,6 @@ public class HudEditorScreen extends GuiScreen {
     }
 
     protected void keyTyped(char c, int key) throws IOException {
-        if (key == Keyboard.KEY_ESCAPE || key == Lumen.MENU_KEY.getKeyCode()) mc.displayGuiScreen(null);
+        if (key == Keyboard.KEY_ESCAPE || dev.lumen.core.Client.keyMenu.is(key)) mc.displayGuiScreen(null);
     }
 }

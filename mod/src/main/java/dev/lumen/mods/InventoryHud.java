@@ -14,6 +14,7 @@ public class InventoryHud extends HudModule {
 
     public InventoryHud() { super("Inventory HUD", "Your inventory on screen.", CENTER, -84, START, 30); }
 
+    protected boolean hasLumenStyle() { return false; }
     public float width() { return 9 * 18 + 6; }
     public float height() { return 3 * 18 + 6; }
 

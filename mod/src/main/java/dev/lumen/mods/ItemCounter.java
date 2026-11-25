@@ -43,7 +43,7 @@ public class ItemCounter extends HudModule {
             if (!editing) return;
             icon = new ItemStack(Blocks.wool);
         }
-        if (background.on()) R.roundRect(0, 0, 44, 20, 3, 0x70000000);
+        if (background.on()) box(0, 0, 44, 20);
         ArmorStatus.drawItem(icon, 2, 2);
         R.mcText(String.valueOf(n), 22, 6, color.get(), true);
     }

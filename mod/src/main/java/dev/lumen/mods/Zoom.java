@@ -21,12 +21,11 @@ public class Zoom extends Module {
     private boolean savedSmooth;
     private double liveFactor;
 
-    public Zoom() { super("Zoom", "Hold the zoom key to zoom (rebind in Controls).", Category.VISUAL); }
+    public Zoom() { super("Zoom", "Hold the zoom key to zoom (set the key in Settings).", Category.VISUAL); }
 
     private boolean keyDown() {
-        int c = Lumen.ZOOM_KEY.getKeyCode();
-        if (c == 0 || mc.currentScreen != null) return false;
-        return c < 0 ? Mouse.isButtonDown(c + 100) : Keyboard.isKeyDown(c);
+        int c = dev.lumen.core.Client.keyZoom.code();
+        return c > 0 && mc.currentScreen == null && Keyboard.isKeyDown(c);
     }
 
     @SubscribeEvent

@@ -19,10 +19,11 @@ public final class ModuleManager {
         add(SimpleHuds.clock()); add(SimpleHuds.server()); add(SimpleHuds.speed()); add(SimpleHuds.memory());
         add(new ComboCounter()); add(new ReachDisplay()); add(new PotCounter()); on(new ToggleSprint());
         add(new ScoreboardMod()); add(new BossBarMod());
-        add(new Cooldowns()); add(new ToggleSneak()); add(new ItemCounter()); add(new DirectionHud());
+        add(new Cooldowns()); add(new TargetHud()); add(new ToggleSneak()); add(new ItemCounter()); add(new DirectionHud());
+        add(new ResourceTimer()); add(new ResourceCount()); add(new SessionStats()); add(new StatsOverlay()); add(new BowCharge()); add(new BlockCount());
         add(new Saturation()); add(new TabEditor()); add(new Titles()); add(new PackDisplay());
         // Hypixel
-        on(new AutoGG()); on(new AutoTip());
+        on(new AutoGG()); on(new AutoTip()); on(new QuickPlay());
         // Visual
         on(new OldAnimations()); on(new ScrollableTooltips());
         // OptiFine already has its own zoom on the same key, so ours starts disabled when it is installed.
@@ -31,8 +32,9 @@ public final class ModuleManager {
         add(new ChatTweaks()); add(new HurtCam()); add(new FovTweaks()); add(new FireOverlay());
         on(new ItemPhysics()); add(new HitColor()); on(new TntTimer()); add(new Hitboxes()); add(new Particles());
         add(new MenuBlur()); add(new MotionBlur()); add(new CleanView()); on(new MainMenu());
+        on(new Screenshots()); add(new NickHider()); add(new Vibrance()); add(new GameFont());
+        on(new KoreanInput());
         // Cosmetics
-        add(new Cape()); add(new Wings());
         // Performance
         on(new Performance()); add(new Items2D()); on(new MemoryOptimizer()); on(new CrashPatcher());
     }
@@ -42,7 +44,7 @@ public final class ModuleManager {
 
     public List<Module> of(Category c) {
         List<Module> out = new ArrayList<Module>();
-        for (Module m : all) if (c == null || m.category == c) out.add(m);
+        for (Module m : all) if (!m.hidden && (c == null || m.category == c)) out.add(m);
         return out;
     }
 }

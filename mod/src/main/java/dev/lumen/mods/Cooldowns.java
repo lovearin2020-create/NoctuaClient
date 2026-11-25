@@ -2,6 +2,7 @@ package dev.lumen.mods;
 
 import dev.lumen.core.HudModule;
 import dev.lumen.core.Setting;
+import dev.lumen.util.Fnt;
 import dev.lumen.util.R;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
@@ -16,10 +17,11 @@ public class Cooldowns extends HudModule {
     private boolean wasDown;
     private static final ItemStack ICON = new ItemStack(Items.ender_pearl);
 
+    private final Setting.Bool background = bool("Background", true);
     public Cooldowns() { super("Cooldowns", "Ender pearl cooldown timer.", CENTER, 20, CENTER, 24); }
 
-    public float width() { return 62; }
-    public float height() { return 20; }
+    public float width() { return lumen() ? 72 : 62; }
+    public float height() { return lumen() ? 24 : 20; }
 
     @SubscribeEvent
     public void onTick(TickEvent.ClientTickEvent e) {
@@ -37,7 +39,15 @@ public class Cooldowns extends HudModule {
         long left = until - System.currentTimeMillis();
         if (left <= 0 && !editing) return;
         float f = left <= 0 ? 0.6f : left / (float) Math.max(1, length);
-        R.roundRect(0, 0, 62, 20, 3, 0x70000000);
+        if (lumen()) {
+            if (background.on()) panel(0, 0, 72, 24);
+            ArmorStatus.drawItem(ICON, 4, 4);
+            Fnt.drawB(String.format("%.1fs", left <= 0 ? pearl.value * 0.6 : left / 1000.0), 25, 4, 9, 0xFFFFFFFF);
+            R.roundRect(25, 17, 41, 2, 1, 0x30FFFFFF);
+            R.roundRect(25, 17, Math.max(2, 41 * f), 2, 1, color.get());
+            return;
+        }
+        if (background.on()) R.roundRect(0, 0, 62, 20, 3, 0x70000000);
         ArmorStatus.drawItem(ICON, 2, 2);
         R.mcText(String.format("%.1fs", left <= 0 ? pearl.value * 0.6 : left / 1000.0), 22, 3, 0xFFFFFFFF, true);
         R.rect(22, 14, 36, 2, 0x50FFFFFF);

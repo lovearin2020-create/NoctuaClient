@@ -9,5 +9,6 @@ public class MenuBlur extends Module {
     public MenuBlur() {
         super("Menu Blur", "Blurs the game behind open menus.", Category.VISUAL);
         INSTANCE = this;
+        hidden = true;
     }
 }

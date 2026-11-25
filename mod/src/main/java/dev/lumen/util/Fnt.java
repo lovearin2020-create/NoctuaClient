@@ -27,10 +27,10 @@ public final class Fnt {
     /** Client setting: draw the menus with the Minecraft font instead of the smooth one. */
     public static boolean minecraft;
 
-    public static final int REGULAR = 0, BOLD = 1, LOGO = 2;
-    private static final String[] FILES = {"Poppins-Medium.ttf", "Poppins-SemiBold.ttf", "Poppins-Bold.ttf"};
-    private static final Font[] BASE = new Font[3];
-    private static final boolean[] TRIED = new boolean[3];
+    public static final int REGULAR = 0, BOLD = 1, LOGO = 2, LIGHT = 3;
+    private static final String[] FILES = {"Poppins-Medium.ttf", "Poppins-SemiBold.ttf", "Poppins-Bold.ttf", "Poppins-Medium.ttf"};
+    private static final Font[] BASE = new Font[4];
+    private static final boolean[] TRIED = new boolean[4];
 
     private static final Minecraft mc = Minecraft.getMinecraft();
     private static final Map<Integer, Fnt> CACHE = new HashMap<Integer, Fnt>();
@@ -57,7 +57,7 @@ public final class Fnt {
                 InputStream in = Fnt.class.getResourceAsStream("/assets/lumen/fonts/" + FILES[weight]);
                 try { BASE[weight] = Font.createFont(Font.TRUETYPE_FONT, in); } finally { in.close(); }
             } catch (Throwable t) {
-                BASE[weight] = new Font("SansSerif", weight == REGULAR ? Font.PLAIN : Font.BOLD, 1);
+                BASE[weight] = new Font("SansSerif", weight == REGULAR || weight == LIGHT ? Font.PLAIN : Font.BOLD, 1);
             }
         }
         return BASE[weight];
@@ -123,7 +123,7 @@ public final class Fnt {
     public static float width(String s, int size) { return width(s, size, REGULAR, 0); }
     public static float widthB(String s, int size) { return width(s, size, BOLD, 0); }
     public static float width(String s, int size, int weight, float spacing) {
-        if (minecraft || !plain(s)) return mcWidth(s, size, weight != REGULAR) + spacing * Math.max(0, s.length() - 1);
+        if (minecraft || !plain(s)) return mcWidth(s, size, weight == BOLD || weight == LOGO) + spacing * Math.max(0, s.length() - 1);
         return of(size, weight).w(s) + spacing * Math.max(0, s.length() - 1);
     }
 
@@ -132,9 +132,14 @@ public final class Fnt {
     public static void center(String s, float cx, float y, int size, int color) { draw(s, cx - width(s, size) / 2f, y, size, color); }
     public static void centerB(String s, float cx, float y, int size, int color) { drawB(s, cx - widthB(s, size) / 2f, y, size, color); }
 
+    /** Centred text with letter spacing (button labels). */
+    public static void track(String s, float cx, float y, int size, int weight, float spacing, int color) {
+        draw(s, cx - width(s, size, weight, spacing) / 2f, y, size, weight, spacing, color, color);
+    }
+
     /** Full control: weight, extra letter spacing and a left-to-right colour gradient. */
     public static void draw(String s, float x, float y, int size, int weight, float spacing, int left, int right) {
-        if (minecraft || !plain(s)) mcDraw(s, x, y, size, left, weight != REGULAR, spacing);
+        if (minecraft || !plain(s)) mcDraw(s, x, y, size, left, weight == BOLD || weight == LOGO, spacing);
         else of(size, weight).d(s, x, y, spacing, left, right);
     }
 

@@ -17,10 +17,11 @@ public class ArmorStatus extends HudModule {
     private final Setting.Col color = col("Text Color", 0xFFFFFFFF);
     private int rows = 4;
 
-    public ArmorStatus() { super("Armor Status", "Armor and durability.", END, 4, END, 4); }
+    public ArmorStatus() { super("Armor Status", "Armor and durability.", END, 4, END, 4); optionalBackground(); }
+    protected boolean showing(boolean editing) { return editing || rows > 0; }
 
-    public float width() { return show.is("Hidden") ? 18 : 48; }
-    public float height() { return Math.max(1, rows) * 17; }
+    public float width() { return lumen() ? (show.is("Hidden") ? 24 : 100) : show.is("Hidden") ? 18 : 48; }
+    public float height() { return lumen() ? Math.max(1, rows) * 19 + 4 : Math.max(1, rows) * 17; }
 
     public void draw(boolean editing) {
         List<ItemStack> list = new ArrayList<ItemStack>();
@@ -36,6 +37,32 @@ public class ArmorStatus extends HudModule {
             list.add(new ItemStack(Items.diamond_leggings)); list.add(new ItemStack(Items.diamond_boots));
         }
         rows = list.size();
+        if (lumen()) {
+            if (list.isEmpty()) return;
+            float w = width();
+            panel(0, 0, w, height());
+            float ly = 2;
+            for (ItemStack s : list) {
+                drawItem(s, 4, (int) ly + 1);
+                if (!show.is("Hidden")) {
+                    String n = s.getItem() instanceof net.minecraft.item.ItemArmor ? new String[]{"Helmet", "Chestplate", "Leggings", "Boots"}[((net.minecraft.item.ItemArmor) s.getItem()).armorType] : "Held";
+                    dev.lumen.util.Fnt.draw(n, 25, ly + 3, 7, color.get());
+                    if (s.isItemStackDamageable()) {
+                        int left = s.getMaxDamage() - s.getItemDamage();
+                        float f = left / (float) Math.max(1, s.getMaxDamage());
+                        String t = show.is("Percent") ? Math.round(f * 100) + "%" : String.valueOf(left);
+                        dev.lumen.util.Fnt.draw(t, w - 7 - dev.lumen.util.Fnt.width(t, 7), ly + 3, 7, 0xFF8891A5);
+                        R.roundRect(25, ly + 13.5f, w - 32, 2.5f, 1.2f, 0x30FFFFFF);
+                        R.roundRect(25, ly + 13.5f, Math.max(2.5f, (w - 32) * f), 2.5f, 1.2f, f > 0.5f ? 0xFF3DD68C : f > 0.2f ? 0xFFFFB454 : 0xFFE5484D);
+                    } else if (s.stackSize > 1) {
+                        String t = "x" + s.stackSize;
+                        dev.lumen.util.Fnt.draw(t, w - 7 - dev.lumen.util.Fnt.width(t, 7), ly + 3, 7, 0xFF8891A5);
+                    }
+                }
+                ly += 19;
+            }
+            return;
+        }
         int y = 0;
         for (ItemStack s : list) {
             drawItem(s, 0, y);

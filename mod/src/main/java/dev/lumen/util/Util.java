@@ -7,7 +7,10 @@ import net.minecraft.util.EnumChatFormatting;
 public final class Util {
     private static final Minecraft mc = Minecraft.getMinecraft();
 
+    private static final boolean FAKE_HYPIXEL = Boolean.getBoolean("lumen.fakeHypixel"); // for testing offline
+
     public static boolean onHypixel() {
+        if (FAKE_HYPIXEL) return true;
         ServerData d = mc.getCurrentServerData();
         return d != null && d.serverIP != null && d.serverIP.toLowerCase().contains("hypixel");
     }

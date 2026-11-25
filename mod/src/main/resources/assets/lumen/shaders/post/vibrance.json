@@ -1,0 +1,7 @@
+{
+    "targets": [ "swap" ],
+    "passes": [
+        { "name": "lumen_vibrance", "intarget": "minecraft:main", "outtarget": "swap", "uniforms": [ { "name": "Vibrance", "values": [ 0.5 ] } ] },
+        { "name": "blit", "intarget": "swap", "outtarget": "minecraft:main" }
+    ]
+}

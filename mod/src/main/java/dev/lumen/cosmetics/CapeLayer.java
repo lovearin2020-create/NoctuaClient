@@ -1,7 +1,5 @@
 package dev.lumen.cosmetics;
 
-import dev.lumen.core.Config;
-import dev.lumen.mods.Cape;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.model.ModelBase;
@@ -13,7 +11,6 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.ResourceLocation;
 
-import javax.imageio.ImageIO;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.LinearGradientPaint;
@@ -27,13 +24,11 @@ import java.awt.GradientPaint;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
-import java.io.File;
 
-/** Renders a locally generated cape on your own player. Other players never see it. */
+/** Draws the equipped Lumen cape on any player (yours, or another Lumen user's as reported by the backend). */
 public class CapeLayer implements LayerRenderer<AbstractClientPlayer> {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private static ResourceLocation texture;
-    private static String textureKey = "";
+    private static final java.util.Map<String, ResourceLocation> textures = new java.util.HashMap<String, ResourceLocation>();
 
     private final RenderPlayer renderer;
     private final CapeModel model = new CapeModel();
@@ -50,9 +45,9 @@ public class CapeLayer implements LayerRenderer<AbstractClientPlayer> {
     }
 
     public void doRenderLayer(AbstractClientPlayer p, float limbSwing, float limbSwingAmount, float pt, float age, float yaw, float pitch, float scale) {
-        Cape c = Cape.INSTANCE;
-        if (c == null || !c.isEnabled() || p != mc.thePlayer || p.isInvisible()) return;
-        ResourceLocation tex = texture(c);
+        String id = dev.lumen.online.Online.wear(p, "cape");
+        if (id == null || p.isInvisible()) return;
+        ResourceLocation tex = texture(id);
         if (tex == null) return;
         GlStateManager.color(1, 1, 1, 1);
         renderer.bindTexture(tex);
@@ -80,33 +75,26 @@ public class CapeLayer implements LayerRenderer<AbstractClientPlayer> {
 
     public boolean shouldCombineTextures() { return false; }
 
-    private static ResourceLocation texture(Cape c) {
-        String key = c.style.get() + (c.style.is("Custom Colors") ? c.primary.color + ":" + c.secondary.color : "") + c.emblem.on();
-        if (key.equals(textureKey)) return texture;
-        textureKey = key;
+    /** One texture per design, painted the first time somebody wears it. */
+    private static ResourceLocation texture(String id) {
+        if (textures.containsKey(id)) return textures.get(id);
+        ResourceLocation tex = null;
         try {
-            BufferedImage img = null;
-            if (c.style.is("Custom PNG")) {
-                File f = new File(Config.dir(), "cape.png");
-                if (f.exists()) img = ImageIO.read(f);
-            }
-            if (img == null) img = generate(c);
-            if (texture != null) mc.getTextureManager().deleteTexture(texture);
-            texture = mc.getTextureManager().getDynamicTextureLocation("lumen_cape", new DynamicTexture(img));
-        } catch (Throwable t) {
-            texture = null;
-        }
-        return texture;
+            tex = mc.getTextureManager().getDynamicTextureLocation("lumen_cape", new DynamicTexture(generate(id)));
+        } catch (Throwable ignored) {}
+        textures.put(id, tex);
+        return tex;
     }
 
     /** Paints a 64x32-layout cape texture at 16x resolution: one face design, used for both sides. */
-    private static BufferedImage generate(Cape c) {
+    private static BufferedImage generate(String id) {
         int k = 16, w = 10 * k, h = 16 * k;
         BufferedImage face = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = face.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-        String s = c.style.get();
+        // "cape_aurora" -> "Aurora"
+        String s = id.startsWith("cape_") ? Character.toUpperCase(id.charAt(5)) + id.substring(6) : id;
         Random rnd = new Random(s.hashCode());
         if (s.equals("Aurora")) aurora(g, w, h, rnd);
         else if (s.equals("Galaxy")) galaxy(g, w, h, rnd);
@@ -115,6 +103,7 @@ public class CapeLayer implements LayerRenderer<AbstractClientPlayer> {
         else if (s.equals("Royal")) royal(g, w, h);
         else if (s.equals("Synthwave")) synthwave(g, w, h);
         else if (s.equals("Frost")) frost(g, w, h, rnd);
+        else if (s.equals("Ruby")) ruby(g, w, h, rnd);
         else {
             Color a, b;
             if (s.equals("Midnight")) { a = new Color(0x0B0B14); b = new Color(0x5B2EA6); }
@@ -122,12 +111,11 @@ public class CapeLayer implements LayerRenderer<AbstractClientPlayer> {
             else if (s.equals("Ocean")) { a = new Color(0x0E7FA8); b = new Color(0x0A2A66); }
             else if (s.equals("Blossom")) { a = new Color(0xFFD1E3); b = new Color(0xFF6BA6); }
             else if (s.equals("Mono")) { a = new Color(0x15171C); b = new Color(0x15171C); }
-            else if (s.equals("Custom Colors")) { a = new Color(c.primary.color & 0xFFFFFF); b = new Color(c.secondary.color & 0xFFFFFF); }
             else { a = new Color(0x101A33); b = new Color(0x38D9F5); }
             g.setPaint(new GradientPaint(0, 0, a, 0, h, b));
             g.fillRect(0, 0, w, h);
             if (s.equals("Mono")) { g.setColor(Color.WHITE); g.fillRect(0, 11 * k, w, k); }
-            if (c.emblem.on()) {
+            {
                 int cx = w / 2, cy = 6 * k, r = 3 * k;
                 g.setColor(new Color(255, 255, 255, 235));
                 g.fillPolygon(new int[]{cx, cx + r, cx, cx - r}, new int[]{cy - r, cy, cy + r, cy}, 4);
@@ -291,6 +279,30 @@ public class CapeLayer implements LayerRenderer<AbstractClientPlayer> {
         }
         for (int i = -6; i <= 6; i++) g.draw(new Line2D.Float(cx + i * w * 0.06f, horizon, cx + i * w * 0.42f, h));
         glow(g, cx, horizon, w * 0.6f, 0xFF4FA3, 90);
+    }
+
+    /** Deep red with a cut gem. */
+    private static void ruby(Graphics2D g, int w, int h, Random rnd) {
+        vertical(g, w, h, new float[]{0f, 0.55f, 1f}, 0x1A0408, 0x5A0A18, 0xB3122E);
+        glow(g, w * 0.5f, h * 0.38f, w * 0.75f, 0xFF3355, 120);
+        stars(g, w, h, rnd, 26, 1f);
+        float cx = w / 2f, cy = h * 0.38f, r = w * 0.30f;
+        float[][] o = {{cx - r, cy - r * 0.35f}, {cx - r * 0.55f, cy - r}, {cx + r * 0.55f, cy - r}, {cx + r, cy - r * 0.35f}, {cx, cy + r * 1.25f}};
+        Path2D.Float gem = new Path2D.Float();
+        gem.moveTo(o[0][0], o[0][1]);
+        for (int i = 1; i < o.length; i++) gem.lineTo(o[i][0], o[i][1]);
+        gem.closePath();
+        g.setPaint(new GradientPaint(0, cy - r, new Color(0xFF8FA3), 0, cy + r * 1.25f, new Color(0xC1121F)));
+        g.fill(gem);
+        g.setColor(rgba(0xFFFFFF, 190));
+        g.setStroke(new BasicStroke(Math.max(1.2f, w * 0.012f), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g.draw(gem);
+        g.draw(new Line2D.Float(o[0][0], o[0][1], o[3][0], o[3][1]));
+        g.draw(new Line2D.Float(o[1][0], o[1][1], cx - r * 0.3f, o[0][1])); g.draw(new Line2D.Float(o[2][0], o[2][1], cx + r * 0.3f, o[0][1]));
+        g.draw(new Line2D.Float(cx - r * 0.3f, o[0][1], cx, o[4][1])); g.draw(new Line2D.Float(cx + r * 0.3f, o[0][1], cx, o[4][1]));
+        g.setStroke(new BasicStroke(w * 0.03f));
+        g.setColor(new Color(0xF5C542));
+        g.draw(new java.awt.geom.Rectangle2D.Float(w * 0.07f, w * 0.07f, w * 0.86f, h - w * 0.14f));
     }
 
     private static void frost(Graphics2D g, int w, int h, Random rnd) {

@@ -52,8 +52,12 @@ public final class R {
         arc(x + w - r, y + r, r, 360);
     }
 
+    /** While true, everything "rounded" is drawn with square corners (the menu's Corners setting). Only the menu sets it, and clears it when it is done. */
+    public static boolean square;
+
     public static void roundRect(float x, float y, float w, float h, float r, int color) {
         if (w <= 0 || h <= 0) return;
+        if (square) { rect(x, y, w, h, color); return; }
         begin(color);
         GL11.glBegin(GL11.GL_POLYGON);
         roundPath(x, y, w, h, r);
@@ -62,6 +66,7 @@ public final class R {
     }
 
     public static void roundOutline(float x, float y, float w, float h, float r, float lineWidth, int color) {
+        if (square) r = 0.01f;
         begin(color);
         GL11.glEnable(GL11.GL_LINE_SMOOTH);
         GL11.glLineWidth(lineWidth);
@@ -70,6 +75,17 @@ public final class R {
         GL11.glEnd();
         GL11.glDisable(GL11.GL_LINE_SMOOTH);
         GL11.glLineWidth(1f);
+        end();
+    }
+
+    /** A filled convex polygon; points as x, y pairs, clockwise on screen. */
+    public static void poly(int color, float... xy) {
+        begin(color);
+        GlStateManager.disableCull(); // callers need not care which way round their points go
+        GL11.glBegin(GL11.GL_POLYGON);
+        for (int i = 0; i < xy.length; i += 2) GL11.glVertex2f(xy[i], xy[i + 1]);
+        GL11.glEnd();
+        GlStateManager.enableCull();
         end();
     }
 

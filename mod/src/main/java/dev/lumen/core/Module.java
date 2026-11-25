@@ -11,6 +11,8 @@ public abstract class Module {
 
     public final String name, description;
     public final Category category;
+    /** Not listed in the mod grid (it is controlled from the Settings tab instead). */
+    public boolean hidden;
     public final List<Setting> settings = new ArrayList<Setting>();
     private boolean enabled;
 

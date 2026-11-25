@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "dev.lumen.fabric.mixin.v",
+  "compatibilityLevel": "JAVA_21",
+  "client": ["ClockMixin", "HandMixin", "PostMixin", "EntityCullMixin", "ItemEntityRendererMixin"],
+  "injectors": { "defaultRequire": ${require} }
+}

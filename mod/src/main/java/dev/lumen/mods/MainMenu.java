@@ -10,8 +10,13 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 public class MainMenu extends Module {
     public MainMenu() { super("Main Menu", "Animated Lumen title screen.", Category.VISUAL); }
 
+    /** Set by the "Accounts" button: the next title screen is the vanilla one, where other mods (Essential) put their buttons. */
+    public static boolean vanillaOnce;
+
     @SubscribeEvent
     public void onOpen(GuiOpenEvent e) {
-        if (e.gui != null && e.gui.getClass() == GuiMainMenu.class) e.gui = new LumenMainMenu();
+        if (e.gui == null || e.gui.getClass() != GuiMainMenu.class) return;
+        if (vanillaOnce) { vanillaOnce = false; return; }
+        e.gui = new LumenMainMenu();
     }
 }
