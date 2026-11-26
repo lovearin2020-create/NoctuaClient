@@ -20,7 +20,7 @@ public final class ModuleManager {
         add(new ComboCounter()); add(new ReachDisplay()); add(new PotCounter()); on(new ToggleSprint());
         add(new ScoreboardMod()); add(new BossBarMod());
         add(new Cooldowns()); add(new TargetHud()); add(new ToggleSneak()); add(new ItemCounter()); add(new DirectionHud());
-        add(new ResourceTimer()); add(new ResourceCount()); add(new SessionStats()); add(new StatsOverlay()); add(new BowCharge()); add(new BlockCount());
+        add(new ResourceTimer()); add(new ResourceCount()); add(new TeamUpgrades()); add(new HeightOverlay()); add(new ColoredBeds()); add(new SessionStats()); add(new StatsOverlay()); add(new BowCharge()); add(new BlockCount());
         add(new Saturation()); add(new TabEditor()); add(new Titles()); add(new PackDisplay());
         // Hypixel
         on(new AutoGG()); on(new AutoTip()); on(new QuickPlay());
