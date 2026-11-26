@@ -33,6 +33,10 @@ public class LumenMainMenu extends Screen {
     private final float[] hover = new float[LINKS.length];
     /** The Quick Play entry being edited: -2 none, -1 a new one. */
     private int editing = -2;
+
+    /** 26.3 only delivers typed characters while text input is on, so the Quick Play form needs it. */
+    @Override protected void init() { dev.lumen.fabric.compat.Compat.textInput(this, true); }
+    @Override public void removed() { dev.lumen.fabric.compat.Compat.textInput(this, false); }
     private String editName = "", editAddress = "";
     private boolean addressFocus;
 

@@ -15,7 +15,7 @@ public class ItemCounter extends HudModule {
     private final Setting.Col color = col("Text Color", 0xFFFFFFFF);
     private int shown = 1;
 
-    public ItemCounter() { super("Item Counter", "Counts key PvP items in your inventory.", CENTER, 146, END, 4); optionalBackground(); }
+    public ItemCounter() { super("Item Counter", "Counts key PvP items in your inventory.", CENTER, 202, END, 4); optionalBackground(); }
 
     public float width() { return shown * 20; }
     public float height() { return 26; }

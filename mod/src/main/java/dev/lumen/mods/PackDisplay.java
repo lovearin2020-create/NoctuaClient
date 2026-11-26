@@ -17,7 +17,7 @@ public class PackDisplay extends HudModule {
     private float w = 100;
 
     private final Setting.Bool background = bool("Background", true);
-    public PackDisplay() { super("Pack Display", "Shows your active resource pack.", END, 4, END, 100); }
+    public PackDisplay() { super("Pack Display", "Shows your active resource pack.", END, 4, END, 108); }
 
     public float width() { return w; }
     public float height() { return lumen() ? 30 : 24; }
