@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "dev.lumen"
-version = "2.7.6"
+version = "2.7.7"
 val modid = "lumen"
 
 java { toolchain.languageVersion.set(JavaLanguageVersion.of(8)) }

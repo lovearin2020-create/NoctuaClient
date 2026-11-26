@@ -26,7 +26,7 @@ import org.lwjgl.input.Keyboard;
 
 @Mod(modid = Lumen.MODID, name = Lumen.NAME, version = Lumen.VERSION, clientSideOnly = true, acceptedMinecraftVersions = "[1.8.9]")
 public class Lumen {
-    public static final String MODID = "lumen", NAME = "Noctua Client", VERSION = "2.7.6";
+    public static final String MODID = "lumen", NAME = "Noctua Client", VERSION = "2.7.7";
 
     public static ModuleManager modules;
 
@@ -68,6 +68,7 @@ public class Lumen {
     @Mod.EventHandler
     public void init(FMLInitializationEvent e) {
         net.minecraftforge.client.ClientCommandHandler.instance.registerCommand(new dev.lumen.mods.Screenshots.Command());
+        net.minecraftforge.client.ClientCommandHandler.instance.registerCommand(new dev.lumen.mods.StatsOverlay.Command());
         try {
             for (RenderPlayer rp : mc.getRenderManager().getSkinMap().values()) {
                 rp.addLayer(new CapeLayer(rp));

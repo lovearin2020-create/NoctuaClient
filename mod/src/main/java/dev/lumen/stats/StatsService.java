@@ -75,7 +75,35 @@ public final class StatsService {
         return e;
     }
 
-    public static void clear() { CACHE.clear(); serverOffUntil = 0; problem = ""; }
+    public static void clear() { CACHE.clear(); NAMES.clear(); serverOffUntil = 0; problem = ""; }
+
+    /** A name being turned into an account, for players who are not in your tab list. */
+    private static final class Named { volatile UUID id; volatile String proper; volatile long retryAt; Entry waiting; }
+    private static final ConcurrentHashMap<String, Named> NAMES = new ConcurrentHashMap<String, Named>();
+
+    /** Stats of a player known only by name. Never blocks; an unknown name ends up as FAILED. */
+    public static Entry byName(final String name, String hypixelKey, String urchinKey) {
+        String key = name.toLowerCase();
+        Named n = NAMES.get(key);
+        if (n == null || (n.id == null && n.retryAt != 0 && System.currentTimeMillis() > n.retryAt)) {
+            final Named fresh = new Named();
+            fresh.waiting = new Entry(UUID.nameUUIDFromBytes(("name:" + key).getBytes()), name);
+            NAMES.put(key, fresh);
+            n = fresh;
+            POOL.execute(new Runnable() { public void run() {
+                try {
+                    JsonObject o = json(http(MOJANG + "/users/profiles/minecraft/" + URLEncoder.encode(name, "UTF-8"), null, null));
+                    String raw = o.get("id").getAsString().replace("-", "");
+                    fresh.proper = o.get("name").getAsString();
+                    fresh.id = new UUID(Long.parseUnsignedLong(raw.substring(0, 16), 16), Long.parseUnsignedLong(raw.substring(16), 16));
+                } catch (Throwable t) {
+                    fresh.waiting.state = FAILED;
+                    fresh.retryAt = System.currentTimeMillis() + RETRY;
+                }
+            } });
+        }
+        return n.id != null ? get(n.id, n.proper, null, hypixelKey, urchinKey) : n.waiting;
+    }
 
     /** Never blocks: returns what is known and starts a lookup when there is nothing fresh. */
     public static Entry get(final UUID id, final String name, final String skinOwner, final String hypixelKey, final String urchinKey) {
