@@ -2,7 +2,7 @@
   "modid": "lumen",
   "name": "Noctua Client",
   "description": "A clean, legit PvP client for 1.8.9. Press RSHIFT in game to open the mod menu.",
-  "version": "2.8.0",
+  "version": "2.8.1",
   "logoFile": "assets/lumen/icon/lumen-128.png",
   "mcversion": "1.8.9",
   "authorList": ["Noctua"]

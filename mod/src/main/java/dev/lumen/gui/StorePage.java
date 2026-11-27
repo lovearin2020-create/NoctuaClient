@@ -23,8 +23,20 @@ final class StorePage {
     private static final String[] SLOTS = {"cape", "wings", "hat", "shield", "killmsg"};
     private static final int EXTRAS = 4, OWNED = 5, PLUS = 6;
     /** The kill message being typed, and whether its box has the keyboard. */
-    private static String killEdit = "";
-    private static boolean killFocus;
+    private static String[] killEdit = {"", "", ""};
+    private static String killLoaded;
+    /** Which of the three boxes has the keyboard, -1 for none. */
+    private static int killFocus = -1;
+    private static final String[] KILL_ROWS = {"KILL", "FINAL", "BED"};
+    private static final String[] KILL_HINT = {"{victim} was sent to the lobby by {killer}", "{victim} was {killer}'s final {finals}", "{bed} was bed {beds} destroyed by {killer}"};
+    /** Ready-made sets: name, kill, final kill, bed. "Counter" is Hypixel's own numbered wording. */
+    private static final String[][] PRESETS = {
+            {"Counter", "{victim} was killed by {killer}", "{victim} was {killer}'s final {finals}", "{bed} was bed {beds} destroyed by {killer}"},
+            {"Clapped", "{victim} got clapped by {killer}", "{victim} got clapped for good by {killer} {finals}", "{bed} got deleted by {killer} {beds}"},
+            {"Pirate", "{victim} was sent to Davy Jones' locker by {killer}", "{victim} walked {killer}'s plank {finals}", "{bed} was plundered by {killer} {beds}"},
+            {"Western", "{victim} was outdrawn by {killer}", "{victim} met {killer} at high noon {finals}", "{bed} was robbed by {killer} {beds}"},
+            {"Chef", "{victim} was served by {killer}", "{victim} was cooked by {killer} {finals}", "{bed} was scrambled by {killer} {beds}"},
+            {"Noctua", "{victim} was caught in the dark by {killer}", "{victim} never saw {killer} coming {finals}", "{bed} was eclipsed by {killer} {beds}"}};
     private static final int TEXT = 0xFFF2F4F8, MUTED = 0xFF8891A5, GREEN = 0xFF2FBF71, RUBY = 0xFFFF3B55, GOLD = 0xFFF5C542;
     private static final int CARD_H = 50, GAP = 6, PREVIEW_W = 98;
     private static final String COLORS = "0123456789abcdef";
@@ -57,53 +69,83 @@ final class StorePage {
         R.poly(0xCCFFFFFF, tl + s * 0.08f, top + s * 0.07f, tl + s * 0.26f, top + s * 0.07f, tl + s * 0.2f, top + s * 0.17f, tl + s * 0.05f, top + s * 0.17f); // glint
     }
 
-    static void opened() { scroll = scrollTo = 0; armed = ""; killFocus = false; killEdit = Online.killMsg; if (Online.status == Online.Status.READY) Online.refresh(); else if (Online.status != Online.Status.SIGNING_IN) Online.signIn(); }
-    static void closed() { Online.previewing = false; Online.preview.clear(); killFocus = false; }
+    static void opened() { scroll = scrollTo = 0; armed = ""; killFocus = -1; killLoaded = null; if (Online.status == Online.Status.READY) Online.refresh(); else if (Online.status != Online.Status.SIGNING_IN) Online.signIn(); }
+    static void closed() { Online.previewing = false; Online.preview.clear(); killFocus = -1; }
 
-    /** Typing into the kill message box. True when the key was used. */
+    static void wheel(float step) { scrollTo += step; }
+
+    /** Typing into the kill message boxes. True when the key was used. */
     static boolean key(char c, int key) {
-        if (!killFocus) return false;
-        if (key == org.lwjgl.input.Keyboard.KEY_ESCAPE) killFocus = false;
-        else if (key == org.lwjgl.input.Keyboard.KEY_RETURN) { killFocus = false; Online.setKillMsg(killEdit.trim()); }
-        else if (key == org.lwjgl.input.Keyboard.KEY_BACK) { if (!killEdit.isEmpty()) killEdit = killEdit.substring(0, killEdit.length() - 1); }
+        if (killFocus < 0) return false;
+        String v = killEdit[killFocus];
+        if (key == org.lwjgl.input.Keyboard.KEY_ESCAPE) killFocus = -1;
+        else if (key == org.lwjgl.input.Keyboard.KEY_TAB) killFocus = (killFocus + 1) % 3;
+        else if (key == org.lwjgl.input.Keyboard.KEY_RETURN) { killFocus = -1; saveKill(); }
+        else if (key == org.lwjgl.input.Keyboard.KEY_BACK) { if (!v.isEmpty()) killEdit[killFocus] = v.substring(0, v.length() - 1); }
         else if (key == org.lwjgl.input.Keyboard.KEY_V && net.minecraft.client.gui.GuiScreen.isCtrlKeyDown()) {
-            String clip = net.minecraft.util.ChatAllowedCharacters.filterAllowedCharacters(net.minecraft.client.gui.GuiScreen.getClipboardString()).replace("\u00a7", "");
-            killEdit = (killEdit + clip).length() > 64 ? (killEdit + clip).substring(0, 64) : killEdit + clip;
-        } else if (net.minecraft.util.ChatAllowedCharacters.isAllowedCharacter(c) && c != '\u00a7' && killEdit.length() < 64) killEdit += c;
+            String clip = net.minecraft.util.ChatAllowedCharacters.filterAllowedCharacters(net.minecraft.client.gui.GuiScreen.getClipboardString()).replace("\u00a7", "").replace("|", "");
+            killEdit[killFocus] = (v + clip).length() > 64 ? (v + clip).substring(0, 64) : v + clip;
+        } else if (net.minecraft.util.ChatAllowedCharacters.isAllowedCharacter(c) && c != '\u00a7' && c != '|' && v.length() < 64) killEdit[killFocus] = v + c;
         return true;
     }
 
+    private static boolean killChanged() { return !Online.killJoin(killEdit).equals(Online.killJoin(Online.killParts(Online.killMsg))); }
+    private static void saveKill() { if (killChanged()) { killLoaded = null; Online.setKillMsg(Online.killJoin(killEdit)); } }
+
     /** Where the kill message editor sits on the Extras tab: x, y, width. */
-    private static float[] killBox(int x0, int by, int w) { return new float[]{x0, by + CARD_H + GAP + 6, w - PREVIEW_W - 8}; }
+    private static float[] killBox(int x0, int by, int w) { return new float[]{x0, by + CARD_H + GAP + 4, w - PREVIEW_W - 8}; }
+    private static float presetX(int i, float x) { float px = x + 42; for (int k = 0; k < i; k++) px += Fnt.width(PRESETS[k][0], 7) + 12; return px; }
+
+    private static String fitTail(String s, int width) {
+        String back = mc.fontRendererObj.trimStringToWidth(new StringBuilder(s).reverse().toString(), width);
+        return back.length() < s.length() ? new StringBuilder(back).reverse().toString() : s;
+    }
 
     private static void drawKill(int mx, int my, int x0, int by, int w) {
         float[] b = killBox(x0, by, w);
         float x = b[0], y = b[1], bw = b[2];
         boolean own = Online.owned.contains(Online.KILL_ITEM);
-        Fnt.drawB("Your kill message", x, y, 9, TEXT);
-        if (!own) { Fnt.draw("Buy it to write the line shown when you get a kill.", x, y + 14, 7, MUTED); return; }
-        if (!killFocus && !Online.busy && killEdit.isEmpty()) killEdit = Online.killMsg;
-        float fy = y + 14;
-        R.roundRect(x, fy, bw - 46, 16, 5, Theme.card);
-        if (killFocus) R.roundOutline(x, fy, bw - 46, 16, 5, 1f, R.ACCENT);
-        String shown = killEdit.isEmpty() && !killFocus ? "{victim} was sent to the lobby by {killer}" : killEdit + (killFocus && System.currentTimeMillis() / 500 % 2 == 0 ? "_" : "");
-        R.mcText(mc.fontRendererObj.trimStringToWidth(new StringBuilder(shown).reverse().toString(), (int) (bw - 56)).length() < shown.length()
-                ? new StringBuilder(mc.fontRendererObj.trimStringToWidth(new StringBuilder(shown).reverse().toString(), (int) (bw - 56))).reverse().toString() : shown,
-                x + 5, fy + 4, killEdit.isEmpty() && !killFocus ? MUTED : TEXT, false);
-        boolean changed = !killEdit.trim().equals(Online.killMsg), hov = R.in(mx, my, x + bw - 42, fy, 42, 16);
-        R.roundRect(x + bw - 42, fy, 42, 16, 5, changed ? (hov ? 0xFF6AA0FF : R.ACCENT) : Theme.bar);
-        Fnt.track("SAVE", x + bw - 21, fy + mid(16, 7), 7, Fnt.BOLD, 1.2f, changed ? TEXT : MUTED);
-        Fnt.draw("{victim} and {killer} stand for the two names. Up to 64 characters.", x, fy + 21, 6, MUTED);
-        Fnt.draw("Replaces the default 1.8.9 Bed Wars kill lines, for you and other Noctua users.", x, fy + 30, 6, MUTED);
-        String t = killEdit.trim().isEmpty() ? "{victim} was sent to the lobby by {killer}" : killEdit.trim();
-        if (!t.contains("{victim}")) t = "{victim} " + t;
+        Fnt.drawB("Your kill messages", x, y, 9, TEXT);
+        if (!own) { Fnt.draw("Buy it to write the lines shown for your kills, final kills and beds.", x, y + 14, 7, MUTED); return; }
+        // what the server holds goes into the boxes whenever it changes, never over something being typed
+        if (!Online.killMsg.equals(killLoaded) && !Online.busy) { killLoaded = Online.killMsg; killEdit = Online.killParts(Online.killMsg); }
+        Fnt.draw("PRESETS", x, y + 16, 6, MUTED);
+        for (int i = 0; i < PRESETS.length; i++) {
+            float px = presetX(i, x), pw = Fnt.width(PRESETS[i][0], 7) + 9;
+            boolean hov = R.in(mx, my, px, y + 13, pw, 12), on = PRESETS[i][1].equals(killEdit[0]) && PRESETS[i][2].equals(killEdit[1]) && PRESETS[i][3].equals(killEdit[2]);
+            R.roundRect(px, y + 13, pw, 12, 5, on ? R.ACCENT : hov ? Theme.ctlHover : Theme.card);
+            Fnt.center(PRESETS[i][0], px + pw / 2f, y + 13 + mid(12, 7), 7, on || hov ? TEXT : MUTED);
+        }
+        for (int i = 0; i < 3; i++) {
+            float fy = y + 30 + i * 19;
+            Fnt.draw(KILL_ROWS[i], x, fy + mid(16, 6), 6, MUTED);
+            R.roundRect(x + 30, fy, bw - 30, 16, 5, Theme.card);
+            if (killFocus == i) R.roundOutline(x + 30, fy, bw - 30, 16, 5, 1f, R.ACCENT);
+            boolean empty = killEdit[i].isEmpty() && killFocus != i;
+            String shown = empty ? (i == 0 ? KILL_HINT[0] : "same as above - e.g. " + KILL_HINT[i]) : killEdit[i] + (killFocus == i && System.currentTimeMillis() / 500 % 2 == 0 ? "_" : "");
+            if (i == 2 && empty) shown = "left as the server writes it - e.g. " + KILL_HINT[2];
+            R.mcText(fitTail(shown, (int) (bw - 40)), x + 35, fy + 4, empty ? 0xFF596074 : TEXT, false);
+        }
+        float hy = y + 89;
+        Fnt.draw("{victim} {killer} {finals}  -  {bed} {killer} {beds}  -  Tab next, Enter saves", x, hy + 3, 6, MUTED);
+        boolean changed = killChanged(), hov = R.in(mx, my, x + bw - 42, hy, 42, 13);
+        R.roundRect(x + bw - 42, hy, 42, 13, 5, changed ? (hov ? 0xFF6AA0FF : R.ACCENT) : Theme.bar);
+        Fnt.track("SAVE", x + bw - 21, hy + mid(13, 7), 7, Fnt.BOLD, 1.2f, changed ? TEXT : MUTED);
+        // how the three lines will read
         String me = mc.getSession() == null ? "You" : mc.getSession().getUsername();
-        String line = "\u00a77" + t.replace("{victim}", "\u00a7cSteve\u00a77").replace("{killer}", "\u00a79" + me + "\u00a77") + (t.contains("{killer}") ? "" : " \u00a78(\u00a79" + me + "\u00a78)");
-        Fnt.draw("PREVIEW", x, fy + 44, 6, MUTED);
-        R.roundRect(x, fy + 53, bw, 15, 5, 0x66000000);
-        R.mcText(line, x + 5, fy + 56.5f, 0xFFFFFFFF, true);
+        String k = killEdit[0].trim().isEmpty() ? KILL_HINT[0] : killEdit[0].trim(), f = killEdit[1].trim().isEmpty() ? k : killEdit[1].trim(), bd = killEdit[2].trim();
+        String[] lines = {sample(k, me, "", "") + ".", sample(f, me, "#4,019", "") + ". \u00a7b\u00a7lFINAL KILL!",
+                "\u00a7fBED DESTRUCTION > " + (bd.isEmpty() ? "\u00a7cRed Bed \u00a77was destroyed by \u00a79" + me + "\u00a77!" : sample(bd.contains("{bed}") ? bd : "{bed} " + bd, me, "", "#812") + "!")};
+        R.roundRect(x, y + 106, bw, 37, 5, 0x66000000);
+        for (int i = 0; i < 3; i++) R.mcText(mc.fontRendererObj.trimStringToWidth(lines[i], (int) (bw - 10)), x + 5, y + 109.5f + i * 11, 0xFFFFFFFF, true);
     }
-    static void wheel(float step) { scrollTo += step; }
+
+    private static String sample(String t, String me, String finals, String beds) {
+        if (!t.contains("{victim}") && !t.contains("{bed}")) t = "{victim} " + t;
+        boolean named = t.contains("{killer}");
+        String out = "\u00a77" + t.replace("{victim}", "\u00a7cSteve\u00a77").replace("{bed}", "\u00a7cRed Bed\u00a77").replace("{killer}", "\u00a79" + me + "\u00a77").replace("{finals}", finals).replace("{beds}", beds);
+        return out.replaceAll(" {2,}", " ").trim() + (named ? "" : " \u00a78(\u00a79" + me + "\u00a78)");
+    }
 
     private static List<Online.Item> list() {
         List<Online.Item> out = new ArrayList<Online.Item>();
@@ -333,11 +375,14 @@ final class StorePage {
             return;
         }
         if (Online.busy) return;
-        killFocus = false;
+        killFocus = -1;
         if (tab == EXTRAS && Online.owned.contains(Online.KILL_ITEM)) {
             float[] b = killBox(x0, by, w);
-            if (R.in(mx, my, b[0], b[1] + 14, b[2] - 46, 16)) { killFocus = true; return; }
-            if (R.in(mx, my, b[0] + b[2] - 42, b[1] + 14, 42, 16)) { if (!killEdit.trim().equals(Online.killMsg)) Online.setKillMsg(killEdit.trim()); return; }
+            for (int i = 0; i < 3; i++) if (R.in(mx, my, b[0] + 30, b[1] + 30 + i * 19, b[2] - 30, 16)) { killFocus = i; return; }
+            for (int i = 0; i < PRESETS.length; i++) {
+                if (R.in(mx, my, presetX(i, b[0]), b[1] + 13, Fnt.width(PRESETS[i][0], 7) + 9, 12)) { killEdit = new String[]{PRESETS[i][1], PRESETS[i][2], PRESETS[i][3]}; return; }
+            }
+            if (R.in(mx, my, b[0] + b[2] - 42, b[1] + 89, 42, 13)) { saveKill(); return; }
         }
         if (tab <= OWNED) {
             List<Online.Item> list = list();

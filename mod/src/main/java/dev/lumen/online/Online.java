@@ -200,42 +200,109 @@ public final class Online {
     }
     public static void setKillMsg(String text) { JsonObject a = new JsonObject(); a.addProperty("p_text", text); call("lumen_set_killmsg", a, "Kill message saved!"); }
 
-    /** Text from the server or another player, made safe to print: no formatting codes, no control characters, 64 at most. */
+    /** Text from the server or another player, made safe to print: no formatting codes, no control characters, 200 at most. */
     static String cleanKill(String s) {
         StringBuilder b = new StringBuilder();
         for (char c : s.toCharArray()) if (c >= 32 && c != 127 && c != '\u00a7') b.append(c);
         String out = b.toString().trim();
-        return out.length() > 64 ? out.substring(0, 64) : out;
+        return out.length() > 200 ? out.substring(0, 200) : out;
     }
 
-    /** The kill message this killer has bought and switched on, or null. */
-    static String killTemplate(String killer) {
+    /** The saved text holds up to three lines joined with "||": kill, final kill, bed. Always returns three (maybe empty). */
+    public static String[] killParts(String saved) {
+        String[] out = {"", "", ""};
+        String[] in = saved.split("\\|\\|", -1);
+        for (int i = 0; i < 3 && i < in.length; i++) { String t = in[i].trim(); out[i] = t.length() > 64 ? t.substring(0, 64) : t; }
+        return out;
+    }
+    public static String killJoin(String[] parts) {
+        String k = parts[0].trim(), f = parts[1].trim(), b = parts[2].trim();
+        return f.isEmpty() && b.isEmpty() ? k : k + "||" + f + "||" + b;
+    }
+
+    /** The lines this killer has bought and switched on, or null. */
+    static String[] killTemplate(String killer) {
         if (mc.thePlayer == null || mc.getNetHandler() == null) return null;
-        if (killer.equalsIgnoreCase(mc.thePlayer.getName())) return equipped.containsKey("killmsg") && !killMsg.isEmpty() ? killMsg : null;
+        if (killer.equalsIgnoreCase(mc.thePlayer.getName())) return equipped.containsKey("killmsg") && !killMsg.isEmpty() ? killParts(killMsg) : null;
+        net.minecraft.client.network.NetworkPlayerInfo i = tabEntry(killer);
+        Outfit o = i == null ? null : outfits.get(i.getGameProfile().getId());
+        return o == null || o.kill == null || o.kill.isEmpty() ? null : killParts(o.kill);
+    }
+
+    private static net.minecraft.client.network.NetworkPlayerInfo tabEntry(String name) {
         for (net.minecraft.client.network.NetworkPlayerInfo i : mc.getNetHandler().getPlayerInfoMap()) {
-            if (i.getGameProfile() == null || !killer.equalsIgnoreCase(i.getGameProfile().getName())) continue;
-            Outfit o = outfits.get(i.getGameProfile().getId());
-            return o == null || o.kill == null || o.kill.isEmpty() ? null : o.kill;
+            if (i.getGameProfile() != null && i.getGameProfile().getId() != null && name.equalsIgnoreCase(i.getGameProfile().getName())) return i;
         }
         return null;
     }
 
-    private static final java.util.regex.Pattern KILL = java.util.regex.Pattern.compile(
-            "^((?:\u00a7.)*)(\\w{1,16})((?:\u00a7.| )*)(?:was killed by|was knocked into the void by|was shot by)((?:\u00a7.| )*)(\\w{1,16})((?:\u00a7.)*)\\.(.*)$");
+    /** A running count for one player: what their stats said when last fetched, plus what has been seen happen since. */
+    private static final class Tally { Object from; int finals, beds; int lastFinal = -1, lastBed = -1; }
+    private static final Map<String, Tally> tallies = new ConcurrentHashMap<String, Tally>();
 
-    /** A default Bed Wars kill line rewritten with the killer's message, or null when it is not one or they have none. */
+    /**
+     * Which final kill (bed = false) or broken bed this is for the player, counting this one; -1 when it cannot be known.
+     * A number the server printed itself is taken as it is; otherwise it is their Hypixel total plus what happened since.
+     */
+    static int nextCount(String player, boolean bed, int printed) {
+        Tally t = tallies.get(player.toLowerCase());
+        if (t == null) { t = new Tally(); tallies.put(player.toLowerCase(), t); if (tallies.size() > 500) tallies.clear(); }
+        if (printed > 0) { if (bed) t.lastBed = printed; else t.lastFinal = printed; return printed; }
+        int last = bed ? t.lastBed : t.lastFinal;
+        if (last > 0) { if (bed) t.lastBed = last + 1; else t.lastFinal = last + 1; return last + 1; }
+        net.minecraft.client.network.NetworkPlayerInfo i = mc.getNetHandler() == null ? null : tabEntry(player);
+        dev.lumen.stats.StatsService.Entry e = i == null ? null : dev.lumen.mods.StatsOverlay.lookup(i.getGameProfile().getId(), i.getGameProfile().getName());
+        if (e == null || e.state != dev.lumen.stats.StatsService.OK) return -1;
+        if (t.from != e) { t.from = e; t.finals = 0; t.beds = 0; }
+        return bed ? e.beds + ++t.beds : e.finals + ++t.finals;
+    }
+
+    private static String hash(int n) { return n > 0 ? "#" + java.text.NumberFormat.getIntegerInstance(java.util.Locale.US).format(n) : ""; }
+    private static int number(String s) { try { return s == null ? -1 : Integer.parseInt(s.replace(",", "")); } catch (Exception e) { return -1; } }
+    /** Tidies what is left when a placeholder turned out empty. */
+    private static String tidy(String s) { return s.replaceAll(" {2,}", " ").replaceAll(" ((?:\u00a7.)*)([.!,])", "$1$2").trim(); }
+
+    /** Closes a line the way the server's own ends, unless the wording already ends in punctuation. */
+    private static String end(String s, char mark) {
+        String bare = s.replaceAll("\u00a7.", "").trim();
+        return bare.isEmpty() || ".!?".indexOf(bare.charAt(bare.length() - 1)) >= 0 ? s : s + mark;
+    }
+
+    private static final String C = "((?:\u00a7.| )*)", N = "(\\w{1,16})";
+    private static final java.util.regex.Pattern KILL = java.util.regex.Pattern.compile(
+            "^((?:\u00a7.)*)" + N + C + "(?:was killed by|was knocked into the void by|was shot by)" + C + N + "((?:\u00a7.)*)\\.(.*)$"),
+            FINAL_NO = java.util.regex.Pattern.compile("^((?:\u00a7.)*)" + N + C + "was" + C + N + "((?:\u00a7.)*)'s" + C + "final" + C + "#([\\d,]+)((?:\u00a7.)*)\\.(.*)$"),
+            BED = java.util.regex.Pattern.compile("^(.*BED DESTRUCTION(?:\u00a7.| )*>(?:\u00a7.| )*?)((?:\u00a7.)*\\w+ Bed)" + C + "was(?: bed #([\\d,]+))?" + C + "destroyed by" + C + N + "((?:\u00a7.)*)!(.*)$");
+
+    /** A default Bed Wars kill, final kill or bed line rewritten with the killer's own wording, or null when it is not one or they have none. */
     public static String rewriteKill(String formatted) {
-        java.util.regex.Matcher m = KILL.matcher(formatted);
-        if (!m.matches()) return null;
-        String tpl = killTemplate(m.group(5));
+        java.util.regex.Matcher m = BED.matcher(formatted);
+        if (m.matches()) {
+            String who = m.group(7);
+            int n = nextCount(who, true, number(m.group(4))); // counted even when the line itself is left alone
+            String[] tpl = killTemplate(who);
+            if (tpl == null || tpl[2].isEmpty() || (n < 0 && tpl[2].contains("{beds}"))) return null; // no count to show: the server's line stands
+            String kc = m.group(6).replace(" ", "");
+            String t = tpl[2].contains("{bed}") ? tpl[2] : "{bed} " + tpl[2];
+            boolean named = t.contains("{killer}");
+            String out = t.replace("{bed}", m.group(2) + "\u00a77").replace("{killer}", kc + who + "\u00a77").replace("{beds}", hash(n)).replace("{victim}", m.group(2) + "\u00a77").replace("{finals}", "");
+            return m.group(1) + end(tidy("\u00a77" + out), '!') + (named ? "" : " \u00a78(" + kc + who + "\u00a78)") + m.group(9);
+        }
+        String vc, victim, kc, killer, rest; int printed = -1;
+        if ((m = FINAL_NO.matcher(formatted)).matches()) { vc = m.group(1); victim = m.group(2); kc = m.group(4).replace(" ", ""); killer = m.group(5); printed = number(m.group(9)); rest = m.group(11); }
+        else if ((m = KILL.matcher(formatted)).matches()) { vc = m.group(1); victim = m.group(2); kc = m.group(4).replace(" ", ""); killer = m.group(5); rest = m.group(7); }
+        else return null;
+        boolean fin = printed > 0 || rest.contains("FINAL KILL");
+        int n = fin ? nextCount(killer, false, printed) : -1;
+        String[] tpl = killTemplate(killer);
         if (tpl == null) return null;
-        if (!tpl.contains("{victim}")) tpl = "{victim} " + tpl;
-        String kc = m.group(4).replace(" ", "");
-        String victim = m.group(1) + m.group(2) + "\u00a77", killer = kc + m.group(5) + "\u00a77";
-        boolean named = tpl.contains("{killer}");
-        String out = "\u00a77" + tpl.replace("{victim}", victim).replace("{killer}", killer);
-        if (!named) out += " \u00a78(" + kc + m.group(5) + "\u00a78)"; // who did it must stay readable
-        return out + m.group(7);
+        // a final line that wants its number shown falls back to the kill line when the number is not known
+        String t = fin && !tpl[1].isEmpty() && (n > 0 || !tpl[1].contains("{finals}")) ? tpl[1] : tpl[0];
+        if (t.isEmpty()) return null;
+        if (!t.contains("{victim}")) t = "{victim} " + t;
+        boolean named = t.contains("{killer}");
+        String out = t.replace("{victim}", vc + victim + "\u00a77").replace("{killer}", kc + killer + "\u00a77").replace("{finals}", hash(n)).replace("{beds}", "").replace("{bed}", "");
+        return end(tidy("\u00a77" + out), '.') + (named ? "" : " \u00a78(" + kc + killer + "\u00a78)") + rest; // who did it must stay readable
     }
 
     /** Last of all, so everything else that reads kill lines still sees the server's own wording. */
@@ -243,7 +310,9 @@ public final class Online {
     public void onKillChat(net.minecraftforge.client.event.ClientChatReceivedEvent e) {
         if (e.type == 2 || e.isCanceled() || !dev.lumen.util.Util.onHypixel()) return;
         try {
-            String out = rewriteKill(e.message.getFormattedText().replaceAll("\u00a7r", ""));
+            String raw = e.message.getFormattedText().replaceAll("\u00a7r", "");
+            if (dev.lumen.util.Bw.playerChat(dev.lumen.util.Util.strip(raw))) return;
+            String out = rewriteKill(raw);
             if (out != null) e.message = new net.minecraft.util.ChatComponentText(out);
         } catch (Throwable ignored) {}
     }

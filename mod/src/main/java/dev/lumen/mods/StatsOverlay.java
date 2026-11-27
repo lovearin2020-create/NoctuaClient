@@ -153,6 +153,13 @@ public class StatsOverlay extends HudModule {
                 || msg.startsWith("You have been kicked from the party") || msg.startsWith("You are not currently in a party") || msg.startsWith("You are not in a party")) party.clear();
     }
 
+    /** Stats of a player in the tab list for other features, with the keys set here; null when there is nothing to ask with. */
+    public static Entry lookup(UUID id, String name) {
+        StatsOverlay o = instance;
+        if (o == null || id == null || id.version() != 4) return null;
+        return StatsService.get(id, name, null, o.hypixelKey.value, o.urchinKey.value);
+    }
+
     /** /nstats: look players up by name and keep them on the overlay. */
     public static final class Command extends net.minecraft.command.CommandBase {
         public String getCommandName() { return "nstats"; }
