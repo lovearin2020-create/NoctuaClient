@@ -19,11 +19,14 @@ import java.util.Locale;
 /** The Store tab of the menu: cosmetics by slot, Lumen+ and how to get Rubies. Drawn inside the menu's content area. */
 final class StorePage {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private static final String[] TABS = {"Capes", "Wings", "Hats", "Shields", "Owned", "Noctua+", "Rubies"};
-    private static final String[] SLOTS = {"cape", "wings", "hat", "shield"};
-    private static final int OWNED = 4, PLUS = 5;
+    private static final String[] TABS = {"Capes", "Wings", "Hats", "Shields", "Extras", "Owned", "Noctua+", "Rubies"};
+    private static final String[] SLOTS = {"cape", "wings", "hat", "shield", "killmsg"};
+    private static final int EXTRAS = 4, OWNED = 5, PLUS = 6;
+    /** The kill message being typed, and whether its box has the keyboard. */
+    private static String killEdit = "";
+    private static boolean killFocus;
     private static final int TEXT = 0xFFF2F4F8, MUTED = 0xFF8891A5, GREEN = 0xFF2FBF71, RUBY = 0xFFFF3B55, GOLD = 0xFFF5C542;
-    private static final int CARD_H = 46, GAP = 6, PREVIEW_W = 98;
+    private static final int CARD_H = 50, GAP = 6, PREVIEW_W = 98;
     private static final String COLORS = "0123456789abcdef";
     private static final int[] COLOR_RGB = {0x000000, 0x0000AA, 0x00AA00, 0x00AAAA, 0xAA0000, 0xAA00AA, 0xFFAA00, 0xAAAAAA, 0x555555, 0x5555FF, 0x55FF55, 0x55FFFF, 0xFF5555, 0xFF55FF, 0xFFFF55, 0xFFFFFF};
 
@@ -54,8 +57,52 @@ final class StorePage {
         R.poly(0xCCFFFFFF, tl + s * 0.08f, top + s * 0.07f, tl + s * 0.26f, top + s * 0.07f, tl + s * 0.2f, top + s * 0.17f, tl + s * 0.05f, top + s * 0.17f); // glint
     }
 
-    static void opened() { scroll = scrollTo = 0; armed = ""; if (Online.status == Online.Status.READY) Online.refresh(); else if (Online.status != Online.Status.SIGNING_IN) Online.signIn(); }
-    static void closed() { Online.previewing = false; Online.preview.clear(); }
+    static void opened() { scroll = scrollTo = 0; armed = ""; killFocus = false; killEdit = Online.killMsg; if (Online.status == Online.Status.READY) Online.refresh(); else if (Online.status != Online.Status.SIGNING_IN) Online.signIn(); }
+    static void closed() { Online.previewing = false; Online.preview.clear(); killFocus = false; }
+
+    /** Typing into the kill message box. True when the key was used. */
+    static boolean key(char c, int key) {
+        if (!killFocus) return false;
+        if (key == org.lwjgl.input.Keyboard.KEY_ESCAPE) killFocus = false;
+        else if (key == org.lwjgl.input.Keyboard.KEY_RETURN) { killFocus = false; Online.setKillMsg(killEdit.trim()); }
+        else if (key == org.lwjgl.input.Keyboard.KEY_BACK) { if (!killEdit.isEmpty()) killEdit = killEdit.substring(0, killEdit.length() - 1); }
+        else if (key == org.lwjgl.input.Keyboard.KEY_V && net.minecraft.client.gui.GuiScreen.isCtrlKeyDown()) {
+            String clip = net.minecraft.util.ChatAllowedCharacters.filterAllowedCharacters(net.minecraft.client.gui.GuiScreen.getClipboardString()).replace("\u00a7", "");
+            killEdit = (killEdit + clip).length() > 64 ? (killEdit + clip).substring(0, 64) : killEdit + clip;
+        } else if (net.minecraft.util.ChatAllowedCharacters.isAllowedCharacter(c) && c != '\u00a7' && killEdit.length() < 64) killEdit += c;
+        return true;
+    }
+
+    /** Where the kill message editor sits on the Extras tab: x, y, width. */
+    private static float[] killBox(int x0, int by, int w) { return new float[]{x0, by + CARD_H + GAP + 6, w - PREVIEW_W - 8}; }
+
+    private static void drawKill(int mx, int my, int x0, int by, int w) {
+        float[] b = killBox(x0, by, w);
+        float x = b[0], y = b[1], bw = b[2];
+        boolean own = Online.owned.contains(Online.KILL_ITEM);
+        Fnt.drawB("Your kill message", x, y, 9, TEXT);
+        if (!own) { Fnt.draw("Buy it to write the line shown when you get a kill.", x, y + 14, 7, MUTED); return; }
+        if (!killFocus && !Online.busy && killEdit.isEmpty()) killEdit = Online.killMsg;
+        float fy = y + 14;
+        R.roundRect(x, fy, bw - 46, 16, 5, Theme.card);
+        if (killFocus) R.roundOutline(x, fy, bw - 46, 16, 5, 1f, R.ACCENT);
+        String shown = killEdit.isEmpty() && !killFocus ? "{victim} was sent to the lobby by {killer}" : killEdit + (killFocus && System.currentTimeMillis() / 500 % 2 == 0 ? "_" : "");
+        R.mcText(mc.fontRendererObj.trimStringToWidth(new StringBuilder(shown).reverse().toString(), (int) (bw - 56)).length() < shown.length()
+                ? new StringBuilder(mc.fontRendererObj.trimStringToWidth(new StringBuilder(shown).reverse().toString(), (int) (bw - 56))).reverse().toString() : shown,
+                x + 5, fy + 4, killEdit.isEmpty() && !killFocus ? MUTED : TEXT, false);
+        boolean changed = !killEdit.trim().equals(Online.killMsg), hov = R.in(mx, my, x + bw - 42, fy, 42, 16);
+        R.roundRect(x + bw - 42, fy, 42, 16, 5, changed ? (hov ? 0xFF6AA0FF : R.ACCENT) : Theme.bar);
+        Fnt.track("SAVE", x + bw - 21, fy + mid(16, 7), 7, Fnt.BOLD, 1.2f, changed ? TEXT : MUTED);
+        Fnt.draw("{victim} and {killer} stand for the two names. Up to 64 characters.", x, fy + 21, 6, MUTED);
+        Fnt.draw("Replaces the default 1.8.9 Bed Wars kill lines, for you and other Noctua users.", x, fy + 30, 6, MUTED);
+        String t = killEdit.trim().isEmpty() ? "{victim} was sent to the lobby by {killer}" : killEdit.trim();
+        if (!t.contains("{victim}")) t = "{victim} " + t;
+        String me = mc.getSession() == null ? "You" : mc.getSession().getUsername();
+        String line = "\u00a77" + t.replace("{victim}", "\u00a7cSteve\u00a77").replace("{killer}", "\u00a79" + me + "\u00a77") + (t.contains("{killer}") ? "" : " \u00a78(\u00a79" + me + "\u00a78)");
+        Fnt.draw("PREVIEW", x, fy + 44, 6, MUTED);
+        R.roundRect(x, fy + 53, bw, 15, 5, 0x66000000);
+        R.mcText(line, x + 5, fy + 56.5f, 0xFFFFFFFF, true);
+    }
     static void wheel(float step) { scrollTo += step; }
 
     private static List<Online.Item> list() {
@@ -79,7 +126,7 @@ final class StorePage {
         gem(x0 + w - bw + 7, y0 + 4.5f, 9, RUBY);
         Fnt.drawB(bal, x0 + w - bw + 19, y0 + mid(18, 9), 9, TEXT);
 
-        float tw = (w - 6 * 3) / 7f, ty = y0 + 26;
+        float tw = (w - 7 * 3) / 8f, ty = y0 + 26;
         for (int i = 0; i < TABS.length; i++) {
             float tx = x0 + i * (tw + 3);
             boolean sel = i == tab, hov = R.in(mx, my, tx, ty, tw, 16);
@@ -101,7 +148,7 @@ final class StorePage {
             return;
         }
 
-        if (tab <= OWNED) drawItems(menu, mx, my, x0, by, w, bh);
+        if (tab <= OWNED) { drawItems(menu, mx, my, x0, by, w, bh); if (tab == EXTRAS) drawKill(mx, my, x0, by, w); }
         else if (tab == PLUS) drawPlus(mx, my, x0, by, w, bh);
         else drawRubies(x0, by, w, bh);
 
@@ -129,14 +176,18 @@ final class StorePage {
             if (hov) { hovered = it.id; hoveredSlot = it.slot; }
             R.roundRect(cx, cy, cw, CARD_H, Theme.radius, hov ? Theme.cardHover : Theme.card);
             if (on) R.roundOutline(cx, cy, cw, CARD_H, Theme.radius, 1f, R.alpha(GREEN, 0.7f));
-            Fnt.center(Fnt.fit(it.name, 9, cw - 8), cx + cw / 2f, cy + 6, 9, TEXT);
-            if (own) Fnt.center(tab == OWNED ? Character.toUpperCase(it.slot.charAt(0)) + it.slot.substring(1) : "Owned", cx + cw / 2f, cy + 19, 7, MUTED);
-            else if (it.price == 0) Fnt.center("Free", cx + cw / 2f, cy + 19, 7, GREEN);
+            int rc = Online.RARITY_RGB[it.rarity];
+            R.roundRect(cx + 3, cy + 5, 2, CARD_H - 25, 1, rc);
+            Fnt.draw(Online.RARITY[it.rarity].toUpperCase(), cx + 8, cy + 4, 5, rc);
+            if (it.animated()) Fnt.draw("ANIMATED", cx + cw - 5 - Fnt.width("ANIMATED", 5), cy + 4, 5, GOLD);
+            Fnt.center(Fnt.fit(it.name, 9, cw - 8), cx + cw / 2f, cy + 9, 9, it.rarity >= 2 ? rc : TEXT);
+            if (own) Fnt.center(tab == OWNED ? Character.toUpperCase(it.slot.charAt(0)) + it.slot.substring(1) : "Owned", cx + cw / 2f, cy + 21, 7, MUTED);
+            else if (it.price == 0) Fnt.center("Free", cx + cw / 2f, cy + 21, 7, GREEN);
             else {
                 String p = num(it.price);
                 float pw = Fnt.width(p, 8) + 10;
-                gem(cx + cw / 2f - pw / 2f, cy + 20.5f, 7.5f, RUBY);
-                Fnt.draw(p, cx + cw / 2f - pw / 2f + 10, cy + 19, 8, Online.rubies >= it.price ? TEXT : 0xFFFF7A8A);
+                gem(cx + cw / 2f - pw / 2f, cy + 22.5f, 7.5f, RUBY);
+                Fnt.draw(p, cx + cw / 2f - pw / 2f + 10, cy + 21, 8, Online.rubies >= it.price ? TEXT : 0xFFFF7A8A);
             }
             float byy = cy + CARD_H - 15;
             boolean bhov = inView && R.in(mx, my, cx, byy, cw, 15);
@@ -272,7 +323,7 @@ final class StorePage {
     }
 
     static void click(int mx, int my, int button, int x0, int y0, int w, int h) {
-        float tw = (w - 6 * 3) / 7f, ty = y0 + 26;
+        float tw = (w - 7 * 3) / 8f, ty = y0 + 26;
         for (int i = 0; i < TABS.length; i++) {
             if (R.in(mx, my, x0 + i * (tw + 3), ty, tw, 16)) { tab = i; scroll = scrollTo = 0; armed = ""; Online.notice = Online.status == Online.Status.READY ? "" : Online.notice; return; }
         }
@@ -282,6 +333,12 @@ final class StorePage {
             return;
         }
         if (Online.busy) return;
+        killFocus = false;
+        if (tab == EXTRAS && Online.owned.contains(Online.KILL_ITEM)) {
+            float[] b = killBox(x0, by, w);
+            if (R.in(mx, my, b[0], b[1] + 14, b[2] - 46, 16)) { killFocus = true; return; }
+            if (R.in(mx, my, b[0] + b[2] - 42, b[1] + 14, 42, 16)) { if (!killEdit.trim().equals(Online.killMsg)) Online.setKillMsg(killEdit.trim()); return; }
+        }
         if (tab <= OWNED) {
             List<Online.Item> list = list();
             int lw = w - PREVIEW_W - 8;

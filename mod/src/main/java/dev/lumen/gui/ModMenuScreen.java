@@ -631,6 +631,7 @@ public class ModMenuScreen extends GuiScreen {
             binding = null;
             return;
         }
+        if (store && StorePage.key(c, key)) return;
         if (editing != null) {
             if (key == Keyboard.KEY_RETURN && editing == profileName) { if (Config.saveProfile(profileName.value)) { profileNote = "Saved."; profileName.value = ""; } editing = null; }
             else if (key == Keyboard.KEY_ESCAPE || key == Keyboard.KEY_RETURN) editing = null;

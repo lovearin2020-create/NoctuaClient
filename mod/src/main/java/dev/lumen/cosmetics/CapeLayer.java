@@ -77,6 +77,7 @@ public class CapeLayer implements LayerRenderer<AbstractClientPlayer> {
 
     /** One texture per design, painted the first time somebody wears it. */
     private static ResourceLocation texture(String id) {
+        if (CapeAnim.is(id)) return moving(id);
         if (textures.containsKey(id)) return textures.get(id);
         ResourceLocation tex = null;
         try {
@@ -84,6 +85,43 @@ public class CapeLayer implements LayerRenderer<AbstractClientPlayer> {
         } catch (Throwable ignored) {}
         textures.put(id, tex);
         return tex;
+    }
+
+    /** A cape that moves: one texture, painted again about twenty times a second while somebody is wearing it in view. */
+    private static final class Moving { DynamicTexture tex; ResourceLocation loc; BufferedImage img, face; long last; }
+    private static final java.util.Map<String, Moving> movers = new java.util.HashMap<String, Moving>();
+    private static final long BORN = System.currentTimeMillis();
+
+    private static ResourceLocation moving(String id) {
+        Moving m = movers.get(id);
+        try {
+            int k = 8;
+            if (m == null) {
+                m = new Moving();
+                m.img = new BufferedImage(64 * k, 32 * k, BufferedImage.TYPE_INT_ARGB);
+                m.face = new BufferedImage(10 * k, 16 * k, BufferedImage.TYPE_INT_ARGB);
+                m.tex = new DynamicTexture(64 * k, 32 * k);
+                m.loc = mc.getTextureManager().getDynamicTextureLocation("lumen_cape_anim", m.tex);
+                movers.put(id, m);
+            }
+            long now = System.currentTimeMillis();
+            if (now - m.last >= 50) {
+                m.last = now;
+                Graphics2D g = m.face.createGraphics();
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                CapeAnim.paint(g, id, 10 * k, 16 * k, (now - BORN) / 1000.0);
+                g.dispose();
+                Graphics2D o = m.img.createGraphics();
+                o.setColor(new Color(m.face.getRGB(5 * k, 3)));
+                o.fillRect(0, 0, 22 * k, 17 * k);
+                o.drawImage(m.face, k, k, null);
+                o.drawImage(m.face, 12 * k, k, null);
+                o.dispose();
+                m.img.getRGB(0, 0, 64 * k, 32 * k, m.tex.getTextureData(), 0, 64 * k);
+                m.tex.updateDynamicTexture();
+            }
+        } catch (Throwable t) { return m == null ? null : m.loc; }
+        return m.loc;
     }
 
     /** Paints a 64x32-layout cape texture at 16x resolution: one face design, used for both sides. */

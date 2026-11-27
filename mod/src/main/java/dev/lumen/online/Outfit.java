@@ -6,6 +6,8 @@ public final class Outfit {
     public String cape, wings, hat, shield;
     /** Lumen+ name colour: one Minecraft colour code character, or 0 for none. */
     public char color;
+    /** Their custom Bed Wars kill message while they have it switched on, else null. */
+    public String kill;
     long fetched;
 
     public String get(String slot) {

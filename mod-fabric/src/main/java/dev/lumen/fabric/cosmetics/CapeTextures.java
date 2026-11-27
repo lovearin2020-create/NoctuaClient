@@ -33,6 +33,7 @@ public final class CapeTextures {
 
     /** @return the skin with the Lumen cape applied, or the original if the texture could not be made. */
     public static PlayerSkin apply(PlayerSkin skin, String id) {
+        if (CapeAnim.is(id)) repaint(id);
         java.util.Map<String, PlayerSkin> made = skins.get(skin);
         PlayerSkin out = made == null ? null : made.get(id);
         if (out != null) return out;
@@ -44,8 +45,59 @@ public final class CapeTextures {
         return out;
     }
 
+    /** A cape that moves: its one texture is painted again about twenty times a second while somebody wears it in view. */
+    private static final class Moving { DynamicTexture tex; BufferedImage img, face; long last; }
+    private static final java.util.Map<String, Moving> movers = new java.util.HashMap<>();
+    private static final long BORN = System.currentTimeMillis();
+
+    private static void repaint(String id) {
+        Moving m = movers.get(id);
+        long now = System.currentTimeMillis();
+        if (m == null || m.tex == null || now - m.last < 50) return;
+        m.last = now;
+        try {
+            int k = 8;
+            Graphics2D g = m.face.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            CapeAnim.paint(g, id, 10 * k, 16 * k, (now - BORN) / 1000.0);
+            g.dispose();
+            Graphics2D o = m.img.createGraphics();
+            o.drawImage(m.face, k, k, null);
+            o.drawImage(m.face, 12 * k, k, null);
+            o.dispose();
+            NativeImage px = m.tex.getPixels();
+            if (px == null) return;
+            for (int y = k; y < 17 * k; y++) for (int x = k; x < 22 * k; x++) px.setPixel(x, y, m.img.getRGB(x, y));
+            m.tex.upload();
+        } catch (Throwable t) { m.tex = null; }
+    }
+
     private static Identifier texture(String id) {
         if (textures.containsKey(id)) return textures.get(id);
+        if (CapeAnim.is(id)) {
+            Identifier tex = null;
+            try {
+                int k = 8;
+                Moving m = new Moving();
+                m.img = new BufferedImage(64 * k, 32 * k, BufferedImage.TYPE_INT_ARGB);
+                m.face = new BufferedImage(10 * k, 16 * k, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D o = m.img.createGraphics();
+                o.setColor(new Color(0x0A0A1E));
+                o.fillRect(0, 0, 22 * k, 17 * k);
+                o.dispose();
+                NativeImage out = new NativeImage(64 * k, 32 * k, false);
+                for (int y = 0; y < 32 * k; y++) for (int x = 0; x < 64 * k; x++) out.setPixel(x, y, m.img.getRGB(x, y));
+                Identifier made = Identifier.fromNamespaceAndPath("lumen", id);
+                m.tex = new DynamicTexture(() -> "Noctua moving cape", out);
+                Minecraft.getInstance().getTextureManager().register(made, m.tex);
+                movers.put(id, m);
+                tex = made;
+            } catch (Throwable t) {
+                System.err.println("[Noctua] Could not create the cape texture: " + t);
+            }
+            textures.put(id, tex);
+            return tex;
+        }
         Identifier tex = null;
         try {
             if (!id.matches("cape_[a-z0-9_]+")) throw new IllegalArgumentException(id);

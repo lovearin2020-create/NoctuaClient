@@ -35,7 +35,10 @@ public final class Online {
     public static final class Item {
         public final String id, slot, name;
         public final int price;
-        Item(String id, String slot, String name, int price) { this.id = id; this.slot = slot; this.name = name; this.price = price; }
+        /** 0 common, 1 rare, 2 epic, 3 legendary. */
+        public final int rarity;
+        Item(String id, String slot, String name, int price, int rarity) { this.id = id; this.slot = slot; this.name = name; this.price = price; this.rarity = rarity; }
+        public boolean animated() { return dev.lumen.cosmetics.CapeAnim.is(id); }
     }
 
     private static final Minecraft mc = Minecraft.getMinecraft();
@@ -55,6 +58,11 @@ public final class Online {
     public static volatile boolean plus, dailyAvailable;
     public static volatile String plusUntil = "", contact = "", plusPriceText = "";
     public static volatile char nameColor;
+    public static final String[] RARITY = {"Common", "Rare", "Epic", "Legendary"};
+    public static final int[] RARITY_RGB = {0xFF9AA3B5, 0xFF4C8DFF, 0xFFA66BFF, 0xFFF5C542};
+    public static final String KILL_ITEM = "killmsg_custom";
+    /** Your own custom kill message ("" none). {victim} and {killer} stand for the two names. */
+    public static volatile String killMsg = "";
     public static volatile List<Item> items = Collections.emptyList();
     public static volatile Set<String> owned = Collections.emptySet();
     public static volatile Map<String, String> equipped = Collections.emptyMap();
@@ -190,6 +198,56 @@ public final class Online {
         if (item == null) a.add("p_item", com.google.gson.JsonNull.INSTANCE); else a.addProperty("p_item", item);
         call("lumen_equip", a, null);
     }
+    public static void setKillMsg(String text) { JsonObject a = new JsonObject(); a.addProperty("p_text", text); call("lumen_set_killmsg", a, "Kill message saved!"); }
+
+    /** Text from the server or another player, made safe to print: no formatting codes, no control characters, 64 at most. */
+    static String cleanKill(String s) {
+        StringBuilder b = new StringBuilder();
+        for (char c : s.toCharArray()) if (c >= 32 && c != 127 && c != '\u00a7') b.append(c);
+        String out = b.toString().trim();
+        return out.length() > 64 ? out.substring(0, 64) : out;
+    }
+
+    /** The kill message this killer has bought and switched on, or null. */
+    static String killTemplate(String killer) {
+        if (mc.thePlayer == null || mc.getNetHandler() == null) return null;
+        if (killer.equalsIgnoreCase(mc.thePlayer.getName())) return equipped.containsKey("killmsg") && !killMsg.isEmpty() ? killMsg : null;
+        for (net.minecraft.client.network.NetworkPlayerInfo i : mc.getNetHandler().getPlayerInfoMap()) {
+            if (i.getGameProfile() == null || !killer.equalsIgnoreCase(i.getGameProfile().getName())) continue;
+            Outfit o = outfits.get(i.getGameProfile().getId());
+            return o == null || o.kill == null || o.kill.isEmpty() ? null : o.kill;
+        }
+        return null;
+    }
+
+    private static final java.util.regex.Pattern KILL = java.util.regex.Pattern.compile(
+            "^((?:\u00a7.)*)(\\w{1,16})((?:\u00a7.| )*)(?:was killed by|was knocked into the void by|was shot by)((?:\u00a7.| )*)(\\w{1,16})((?:\u00a7.)*)\\.(.*)$");
+
+    /** A default Bed Wars kill line rewritten with the killer's message, or null when it is not one or they have none. */
+    public static String rewriteKill(String formatted) {
+        java.util.regex.Matcher m = KILL.matcher(formatted);
+        if (!m.matches()) return null;
+        String tpl = killTemplate(m.group(5));
+        if (tpl == null) return null;
+        if (!tpl.contains("{victim}")) tpl = "{victim} " + tpl;
+        String kc = m.group(4).replace(" ", "");
+        String victim = m.group(1) + m.group(2) + "\u00a77", killer = kc + m.group(5) + "\u00a77";
+        boolean named = tpl.contains("{killer}");
+        String out = "\u00a77" + tpl.replace("{victim}", victim).replace("{killer}", killer);
+        if (!named) out += " \u00a78(" + kc + m.group(5) + "\u00a78)"; // who did it must stay readable
+        return out + m.group(7);
+    }
+
+    /** Last of all, so everything else that reads kill lines still sees the server's own wording. */
+    @SubscribeEvent(priority = net.minecraftforge.fml.common.eventhandler.EventPriority.LOWEST)
+    public void onKillChat(net.minecraftforge.client.event.ClientChatReceivedEvent e) {
+        if (e.type == 2 || e.isCanceled() || !dev.lumen.util.Util.onHypixel()) return;
+        try {
+            String out = rewriteKill(e.message.getFormattedText().replaceAll("\u00a7r", ""));
+            if (out != null) e.message = new net.minecraft.util.ChatComponentText(out);
+        } catch (Throwable ignored) {}
+    }
+
     public static void claimDaily() { call("lumen_daily", new JsonObject(), "Daily Rubies claimed!"); }
     public static void setColor(char c) {
         JsonObject a = new JsonObject();
@@ -242,11 +300,16 @@ public final class Online {
         dailyAvailable = st.get("daily_available").getAsBoolean();
         try { dailyRubies = st.get("daily_rubies").getAsInt(); } catch (Throwable ignored) {}
         contact = str(st, "contact");
+        killMsg = cleanKill(str(st, "kill_msg"));
         plusPriceText = str(st, "plus_price_text");
         List<Item> its = new ArrayList<Item>();
         for (JsonElement e : st.getAsJsonArray("items")) {
             JsonObject o = e.getAsJsonObject();
-            its.add(new Item(o.get("id").getAsString(), o.get("slot").getAsString(), o.get("name").getAsString(), o.get("price").getAsInt()));
+            int price = o.get("price").getAsInt();
+            // servers from before rarity existed: go by the price, as the server itself does
+            int rar = java.util.Arrays.asList("common", "rare", "epic", "legendary").indexOf(str(o, "rarity"));
+            if (rar < 0) rar = price >= 5000 ? 3 : price >= 900 ? 2 : price >= 300 ? 1 : 0;
+            its.add(new Item(o.get("id").getAsString(), o.get("slot").getAsString(), o.get("name").getAsString(), price, rar));
         }
         items = its;
         Set<String> own = new HashSet<String>();
@@ -300,6 +363,15 @@ public final class Online {
             if (o == null || now - o.fetched > STALE_MS) ask.add(id);
             if (ask.size() >= 150) break;
         }
+        // on Hypixel also the players in the tab list, so a far-off killer's message is known when it is needed
+        if (dev.lumen.util.Util.onHypixel() && mc.getNetHandler() != null) {
+            for (net.minecraft.client.network.NetworkPlayerInfo i : mc.getNetHandler().getPlayerInfoMap()) {
+                UUID id = i.getGameProfile() == null ? null : i.getGameProfile().getId();
+                if (ask.size() >= 150 || id == null || id.version() != 4 || ask.contains(id) || id.equals(mc.thePlayer == null ? null : mc.thePlayer.getUniqueID())) continue;
+                Outfit o = outfits.get(id);
+                if (o == null || now - o.fetched > STALE_MS) ask.add(id);
+            }
+        }
         if (ask.isEmpty()) return;
         fetching = true;
         worker.execute(new Runnable() {
@@ -320,6 +392,8 @@ public final class Online {
                             for (Map.Entry<String, JsonElement> en : po.getAsJsonObject("e").entrySet()) o.set(en.getKey(), en.getValue().getAsString());
                             String c = str(po, "c");
                             o.color = c.isEmpty() ? 0 : c.charAt(0);
+                            String k = cleanKill(str(po, "k"));
+                            o.kill = k.isEmpty() ? null : k;
                             known.put(id, new EntityPlayerName(str(po, "n"), o.color));
                         } else known.remove(id);
                         outfits.put(id, o);
