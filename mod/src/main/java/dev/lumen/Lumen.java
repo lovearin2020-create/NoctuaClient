@@ -26,7 +26,7 @@ import org.lwjgl.input.Keyboard;
 
 @Mod(modid = Lumen.MODID, name = Lumen.NAME, version = Lumen.VERSION, clientSideOnly = true, acceptedMinecraftVersions = "[1.8.9]")
 public class Lumen {
-    public static final String MODID = "lumen", NAME = "Noctua Client", VERSION = "2.8.1";
+    public static final String MODID = "lumen", NAME = "Noctua Client", VERSION = "2.8.2";
 
     public static ModuleManager modules;
 

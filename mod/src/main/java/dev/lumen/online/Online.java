@@ -208,15 +208,23 @@ public final class Online {
         return out.length() > 200 ? out.substring(0, 200) : out;
     }
 
-    /** The saved text holds up to three lines joined with "||": kill, final kill, bed. Always returns three (maybe empty). */
+    /** The colour Hypixel prints the #4,019 in. */
+    public static final String KILL_NUMBER_COLOR = "e";
+
+    /**
+     * The saved text holds up to four parts joined with "||": kill, final kill, bed, and the colour code of the number.
+     * Always returns four; the lines may be empty, the colour never is.
+     */
     public static String[] killParts(String saved) {
-        String[] out = {"", "", ""};
+        String[] out = {"", "", "", KILL_NUMBER_COLOR};
         String[] in = saved.split("\\|\\|", -1);
         for (int i = 0; i < 3 && i < in.length; i++) { String t = in[i].trim(); out[i] = t.length() > 64 ? t.substring(0, 64) : t; }
+        if (in.length > 3 && in[3].trim().length() == 1 && "0123456789abcdef".indexOf(in[3].trim().charAt(0)) >= 0) out[3] = in[3].trim();
         return out;
     }
     public static String killJoin(String[] parts) {
-        String k = parts[0].trim(), f = parts[1].trim(), b = parts[2].trim();
+        String k = parts[0].trim(), f = parts[1].trim(), b = parts[2].trim(), c = parts[3];
+        if (!c.equals(KILL_NUMBER_COLOR)) return k + "||" + f + "||" + b + "||" + c;
         return f.isEmpty() && b.isEmpty() ? k : k + "||" + f + "||" + b;
     }
 
@@ -257,7 +265,7 @@ public final class Online {
         return bed ? e.beds + ++t.beds : e.finals + ++t.finals;
     }
 
-    private static String hash(int n) { return n > 0 ? "#" + java.text.NumberFormat.getIntegerInstance(java.util.Locale.US).format(n) : ""; }
+    private static String hash(int n, String color) { return n > 0 ? "\u00a7" + color + "#" + java.text.NumberFormat.getIntegerInstance(java.util.Locale.US).format(n) + "\u00a77" : ""; }
     private static int number(String s) { try { return s == null ? -1 : Integer.parseInt(s.replace(",", "")); } catch (Exception e) { return -1; } }
     /** Tidies what is left when a placeholder turned out empty. */
     private static String tidy(String s) { return s.replaceAll(" {2,}", " ").replaceAll(" ((?:\u00a7.)*)([.!,])", "$1$2").trim(); }
@@ -285,7 +293,7 @@ public final class Online {
             String kc = m.group(6).replace(" ", "");
             String t = tpl[2].contains("{bed}") ? tpl[2] : "{bed} " + tpl[2];
             boolean named = t.contains("{killer}");
-            String out = t.replace("{bed}", m.group(2) + "\u00a77").replace("{killer}", kc + who + "\u00a77").replace("{beds}", hash(n)).replace("{victim}", m.group(2) + "\u00a77").replace("{finals}", "");
+            String out = t.replace("{bed}", m.group(2) + "\u00a77").replace("{killer}", kc + who + "\u00a77").replace("{beds}", hash(n, tpl[3])).replace("{victim}", m.group(2) + "\u00a77").replace("{finals}", "");
             return m.group(1) + end(tidy("\u00a77" + out), '!') + (named ? "" : " \u00a78(" + kc + who + "\u00a78)") + m.group(9);
         }
         String vc, victim, kc, killer, rest; int printed = -1;
@@ -301,7 +309,7 @@ public final class Online {
         if (t.isEmpty()) return null;
         if (!t.contains("{victim}")) t = "{victim} " + t;
         boolean named = t.contains("{killer}");
-        String out = t.replace("{victim}", vc + victim + "\u00a77").replace("{killer}", kc + killer + "\u00a77").replace("{finals}", hash(n)).replace("{beds}", "").replace("{bed}", "");
+        String out = t.replace("{victim}", vc + victim + "\u00a77").replace("{killer}", kc + killer + "\u00a77").replace("{finals}", hash(n, tpl[3])).replace("{beds}", "").replace("{bed}", "");
         return end(tidy("\u00a77" + out), '.') + (named ? "" : " \u00a78(" + kc + killer + "\u00a78)") + rest; // who did it must stay readable
     }
 

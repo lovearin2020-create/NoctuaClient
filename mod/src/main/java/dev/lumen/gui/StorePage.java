@@ -23,7 +23,7 @@ final class StorePage {
     private static final String[] SLOTS = {"cape", "wings", "hat", "shield", "killmsg"};
     private static final int EXTRAS = 4, OWNED = 5, PLUS = 6;
     /** The kill message being typed, and whether its box has the keyboard. */
-    private static String[] killEdit = {"", "", ""};
+    private static String[] killEdit = {"", "", "", Online.KILL_NUMBER_COLOR};
     private static String killLoaded;
     /** Which of the three boxes has the keyboard, -1 for none. */
     private static int killFocus = -1;
@@ -127,15 +127,23 @@ final class StorePage {
             R.mcText(fitTail(shown, (int) (bw - 40)), x + 35, fy + 4, empty ? 0xFF596074 : TEXT, false);
         }
         float hy = y + 89;
-        Fnt.draw("{victim} {killer} {finals}  -  {bed} {killer} {beds}  -  Tab next, Enter saves", x, hy + 3, 6, MUTED);
+        Fnt.draw("{victim} {killer} {finals}  -  {bed} {beds}  -  Tab next, Enter saves", x + bw - Fnt.width("{victim} {killer} {finals}  -  {bed} {beds}  -  Tab next, Enter saves", 6), y + 2, 6, MUTED);
+        Fnt.draw("NUMBER COLOR", x, hy + 3, 6, MUTED);
+        for (int i = 0; i < 16; i++) {
+            float sx = x + 62 + i * 11;
+            boolean on = killEdit[3].charAt(0) == COLORS.charAt(i);
+            R.roundRect(sx, hy + 1.5f, 9, 9, 2.5f, 0xFF000000 | COLOR_RGB[i]);
+            if (on) R.roundOutline(sx - 1.5f, hy, 12, 12, 3.5f, 1f, TEXT); else if (i == 0) R.roundOutline(sx, hy + 1.5f, 9, 9, 2.5f, 0.6f, 0x55FFFFFF);
+        }
         boolean changed = killChanged(), hov = R.in(mx, my, x + bw - 42, hy, 42, 13);
         R.roundRect(x + bw - 42, hy, 42, 13, 5, changed ? (hov ? 0xFF6AA0FF : R.ACCENT) : Theme.bar);
         Fnt.track("SAVE", x + bw - 21, hy + mid(13, 7), 7, Fnt.BOLD, 1.2f, changed ? TEXT : MUTED);
         // how the three lines will read
         String me = mc.getSession() == null ? "You" : mc.getSession().getUsername();
         String k = killEdit[0].trim().isEmpty() ? KILL_HINT[0] : killEdit[0].trim(), f = killEdit[1].trim().isEmpty() ? k : killEdit[1].trim(), bd = killEdit[2].trim();
-        String[] lines = {sample(k, me, "", "") + ".", sample(f, me, "#4,019", "") + ". \u00a7b\u00a7lFINAL KILL!",
-                "\u00a7fBED DESTRUCTION > " + (bd.isEmpty() ? "\u00a7cRed Bed \u00a77was destroyed by \u00a79" + me + "\u00a77!" : sample(bd.contains("{bed}") ? bd : "{bed} " + bd, me, "", "#812") + "!")};
+        String nc = "\u00a7" + killEdit[3];
+        String[] lines = {sample(k, me, "", "") + ".", sample(f, me, nc + "#4,019\u00a77", "") + ". \u00a7b\u00a7lFINAL KILL!",
+                "\u00a7fBED DESTRUCTION > " + (bd.isEmpty() ? "\u00a7cRed Bed \u00a77was destroyed by \u00a79" + me + "\u00a77!" : sample(bd.contains("{bed}") ? bd : "{bed} " + bd, me, "", nc + "#812\u00a77") + "!")};
         R.roundRect(x, y + 106, bw, 37, 5, 0x66000000);
         for (int i = 0; i < 3; i++) R.mcText(mc.fontRendererObj.trimStringToWidth(lines[i], (int) (bw - 10)), x + 5, y + 109.5f + i * 11, 0xFFFFFFFF, true);
     }
@@ -380,7 +388,10 @@ final class StorePage {
             float[] b = killBox(x0, by, w);
             for (int i = 0; i < 3; i++) if (R.in(mx, my, b[0] + 30, b[1] + 30 + i * 19, b[2] - 30, 16)) { killFocus = i; return; }
             for (int i = 0; i < PRESETS.length; i++) {
-                if (R.in(mx, my, presetX(i, b[0]), b[1] + 13, Fnt.width(PRESETS[i][0], 7) + 9, 12)) { killEdit = new String[]{PRESETS[i][1], PRESETS[i][2], PRESETS[i][3]}; return; }
+                if (R.in(mx, my, presetX(i, b[0]), b[1] + 13, Fnt.width(PRESETS[i][0], 7) + 9, 12)) { killEdit = new String[]{PRESETS[i][1], PRESETS[i][2], PRESETS[i][3], killEdit[3]}; return; }
+            }
+            for (int i = 0; i < 16; i++) {
+                if (R.in(mx, my, b[0] + 62 + i * 11, b[1] + 90, 10, 11)) { killEdit[3] = String.valueOf(COLORS.charAt(i)); return; }
             }
             if (R.in(mx, my, b[0] + b[2] - 42, b[1] + 89, 42, 13)) { saveKill(); return; }
         }

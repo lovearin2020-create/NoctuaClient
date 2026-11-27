@@ -5,7 +5,7 @@ import dev.lumen.fabric.core.ModuleManager;
 import net.fabricmc.api.ClientModInitializer;
 
 public final class Lumen implements ClientModInitializer {
-    public static final String VERSION = "2.8.1";
+    public static final String VERSION = "2.8.2";
     /** Key code of the menu key (Right Shift). The numbering differs between game versions, so it is taken from the game. */
     public static ModuleManager modules;
     private static boolean loaded;
