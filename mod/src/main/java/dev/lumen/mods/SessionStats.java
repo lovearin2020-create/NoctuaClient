@@ -50,7 +50,7 @@ public class SessionStats extends HudModule {
 
     @SubscribeEvent
     public void onChat(ClientChatReceivedEvent e) {
-        if (e.type == 2 || mc.thePlayer == null || !Util.onHypixel()) return;
+        if (e.type == 2 || mc.thePlayer == null || !Util.onHypixel() || !dev.lumen.util.Bw.inBedWars()) return; // Bed Wars only: a duel is not a session game
         switch (classify(Util.strip(e.message.getUnformattedText()), mc.thePlayer.getName())) {
             case 2: finals++; // a final kill is also a kill
             case 1: kills++; break;
@@ -64,7 +64,7 @@ public class SessionStats extends HudModule {
 
     /** Called for every title the server shows. */
     public void onTitle(String title) {
-        if (title == null || !Util.onHypixel()) return;
+        if (title == null || !Util.onHypixel() || !dev.lumen.util.Bw.inBedWars()) return;
         String t = Util.strip(title).trim();
         long now = System.currentTimeMillis();
         if (now - lastResult < 15000) return;

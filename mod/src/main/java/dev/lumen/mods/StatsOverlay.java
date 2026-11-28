@@ -39,7 +39,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Bed Wars lobby overlay: stars, FKDR, win/loss, bed ratio and winstreak of everyone in your game, Urchin cheater and
+ * Lobby overlay for Bed Wars, Duels and SkyWars (it follows the game you are in). Bed Wars: stars, FKDR, win/loss, bed ratio and winstreak of everyone in your game, Urchin cheater and
  * sniper tags, who is nicked (and who they are when they kept their own skin), and a warning for dangerous lobbies.
  * Besides the players in the tab list it shows your party under their real names, anyone who says your name in chat
  * for a while, and whoever you look up with /nstats. In a game a player stays listed until their final death.
@@ -53,7 +53,8 @@ public class StatsOverlay extends HudModule {
     private final Setting.Text hypixelKey = text("Hypixel API Key", "", 80);
     private final Setting.Mode show = mode("Show", "Always", "Always", "Tab Held", "Before Game Only");
     private final Setting.Mode sortBy = mode("Sort By", "Threat", "Threat", "Stars", "FKDR", "WLR", "BBLR", "Winstreak", "Finals", "Monthly FKDR", "Name");
-    private final Setting.Bool onlyBedwars = bool("Only In Bed Wars", true);
+    private final Setting.Bool onlyBedwars = bool("Only In Games", true);
+    private final Setting.Bool inDuels = bool("Show In Duels", true), inSkywars = bool("Show In SkyWars", true);
     private final Setting.Bool denick = bool("Denick By Skin", true);
     private final Setting.Bool warn = bool("Threat Warnings", true);
     private final Setting.Num warnFkdr = num("Warn At FKDR", 5, 1, 30, 0.5);
@@ -65,6 +66,10 @@ public class StatsOverlay extends HudModule {
     private final Setting.Bool cFkdr = bool("Column: FKDR", true), cWlr = bool("Column: WLR", true), cBblr = bool("Column: BBLR", true),
             cWs = bool("Column: Winstreak", true), cMfkdr = bool("Column: Monthly FKDR", true), cMbblr = bool("Column: Monthly BBLR", false),
             cFinals = bool("Column: Finals", true), cBeds = bool("Column: Beds Broken", false), cWins = bool("Column: Wins", false), cFpl = bool("Column: Finals / Level", true);
+    private final Setting.Bool dWlr = bool("Duels: WLR", true), dKdr = bool("Duels: KDR", true), dWs = bool("Duels: Winstreak", true), dBest = bool("Duels: Best WS", true),
+            dWins = bool("Duels: Wins", true), dLosses = bool("Duels: Losses", false), dKills = bool("Duels: Kills", false);
+    private final Setting.Bool sKdr = bool("SkyWars: KDR", true), sWlr = bool("SkyWars: WLR", true), sWins = bool("SkyWars: Wins", true), sKills = bool("SkyWars: Kills", true),
+            sDeaths = bool("SkyWars: Deaths", false), sLosses = bool("SkyWars: Losses", false);
     private final Setting.Bool background = bool("Background", true);
     private final Setting.Col accent = col("Accent Color", 0xFF4C8DFF);
 
@@ -80,16 +85,26 @@ public class StatsOverlay extends HudModule {
     private volatile List<Row> rows = new ArrayList<Row>();
     private final Set<UUID> warned = new HashSet<UUID>();
     private boolean bedwars, pregame, noSource;
+    private int other;
     private int ticks;
 
     public StatsOverlay() { super("Stats Overlay", "Bed Wars: stats and tags of the players in your game.", Category.HYPIXEL, START, 4, CENTER, -50); instance = this; }
 
     private static final String[] LABELS = {"FKDR", "WLR", "BBLR", "WS", "MFKDR", "MBBLR", "FINALS", "BEDS", "WINS", "F/LVL"};
     private static final int[] WIDTHS = {28, 28, 28, 24, 32, 32, 36, 32, 32, 30};
-    private Setting.Bool[] columns() { return new Setting.Bool[]{cFkdr, cWlr, cBblr, cWs, cMfkdr, cMbblr, cFinals, cBeds, cWins, cFpl}; }
+    private static final String[] D_LABELS = {"WLR", "KDR", "WS", "BEST", "WINS", "LOSSES", "KILLS"}, S_LABELS = {"KDR", "WLR", "WINS", "KILLS", "DEATHS", "LOSSES"};
+    private static final int[] D_WIDTHS = {28, 28, 24, 28, 34, 36, 34}, S_WIDTHS = {28, 28, 32, 34, 36, 36};
+    /** Which game the list is for: 0 Bed Wars, 1 Duels, 2 SkyWars. */
+    private volatile int game;
+    private Setting.Bool[] columns() {
+        return game == 1 ? new Setting.Bool[]{dWlr, dKdr, dWs, dBest, dWins, dLosses, dKills} : game == 2 ? new Setting.Bool[]{sKdr, sWlr, sWins, sKills, sDeaths, sLosses}
+                : new Setting.Bool[]{cFkdr, cWlr, cBblr, cWs, cMfkdr, cMbblr, cFinals, cBeds, cWins, cFpl};
+    }
+    private String[] labels() { return game == 1 ? D_LABELS : game == 2 ? S_LABELS : LABELS; }
+    private int[] widths() { return game == 1 ? D_WIDTHS : game == 2 ? S_WIDTHS : WIDTHS; }
 
     protected boolean hasLumenStyle() { return false; }
-    public float width() { float w = LEFT; Setting.Bool[] c = columns(); for (int i = 0; i < c.length; i++) if (c[i].on()) w += WIDTHS[i]; return w + 6; }
+    public float width() { float w = LEFT; Setting.Bool[] c = columns(); int[] ws = widths(); for (int i = 0; i < c.length; i++) if (c[i].on()) w += ws[i]; return w + 6; }
     public float height() { return 18 + Math.max(1, rows.size()) * ROW + (noSource ? 11 : 3); }
 
     @SubscribeEvent
@@ -187,10 +202,11 @@ public class StatsOverlay extends HudModule {
         if (e.phase != TickEvent.Phase.END || !isEnabled() || mc.thePlayer == null || mc.theWorld == null || mc.getNetHandler() == null) return;
         if (++ticks % 10 != 0) return;
         boolean hypixel = Util.onHypixel();
-        if (hypixel) readSidebar(); else { bedwars = false; pregame = false; }
+        if (hypixel) readSidebar(); else { bedwars = false; pregame = false; other = 0; }
+        game = bedwars ? 0 : other;
         final List<Row> out = new ArrayList<Row>();
         boolean none = false;
-        if (hypixel && (bedwars || !onlyBedwars.on())) {
+        if (hypixel && (bedwars || other != 0 || !onlyBedwars.on())) {
             boolean playing = keep.on() && bedwars && !pregame;
             if (!playing) roster.clear();
             List<Seen> seen = new ArrayList<Seen>();
@@ -213,7 +229,7 @@ public class StatsOverlay extends HudModule {
                 r.e = StatsService.get(s.id, s.name, s.skin, hypixelKey.value, urchinKey.value);
                 if (r.e.state == StatsService.NO_SOURCE) none = true;
                 out.add(r);
-                if (warn.on() && (pregame || !onlyBedwars.on())) warn(r);
+                if (warn.on() && bedwars && pregame) warn(r);
             }
         }
         Collections.sort(out, new Comparator<Row>() { public int compare(Row a, Row b) {
@@ -254,6 +270,13 @@ public class StatsOverlay extends HudModule {
 
     /** The number the list is ordered by. */
     private double key(Entry e) {
+        if (game != 0) { // the other games have their own numbers; anything that has no match there sorts by threat
+            if (e.state != StatsService.OK) return e.threat(game);
+            if (sortBy.is("WLR")) return game == 1 ? e.dWlr() : e.sWlr();
+            if (sortBy.is("Winstreak") && game == 1) return e.dWs;
+            if (sortBy.is("Stars") && game == 2) return e.sLevel;
+            return e.threat(game);
+        }
         if (sortBy.is("Threat")) return e.threat();
         if (sortBy.is("Monthly FKDR")) return e.mfkdr;
         if (e.state != StatsService.OK) return -1;
@@ -271,7 +294,9 @@ public class StatsOverlay extends HudModule {
             Scoreboard sb = mc.theWorld.getScoreboard();
             ScoreObjective o = sb.getObjectiveInDisplaySlot(1);
             if (o == null) return;
-            bedwars = Util.strip(o.getDisplayName()).toUpperCase().contains("BED WARS");
+            String title = Util.strip(o.getDisplayName()).toUpperCase();
+            bedwars = title.contains("BED WARS");
+            other = title.contains("DUELS") && inDuels.on() ? 1 : title.contains("SKYWARS") && inSkywars.on() ? 2 : 0;
             for (Score s : sb.getSortedScores(o)) {
                 String line = Util.strip(ScorePlayerTeam.formatPlayerName(sb.getPlayersTeam(s.getPlayerName()), s.getPlayerName()));
                 if (line.contains("Waiting") || line.contains("Starting in")) pregame = true;
@@ -371,9 +396,10 @@ public class StatsOverlay extends HudModule {
         }
         int head = 0xFF8891A5, dim = 0xFF6F778A;
         Fnt.draw("TAG", 7, 4, 6, head);
-        Fnt.draw("STAR", 40, 4, 6, head);
+        Fnt.draw(game == 1 ? "" : game == 2 ? "LVL" : "STAR", 40, 4, 6, head);
         Fnt.draw("PLAYER", 66, 4, 6, head);
         Setting.Bool[] cols = columns();
+        String[] LABELS = labels(); int[] WIDTHS = widths();
         float[] cx = new float[cols.length];
         float x = LEFT;
         for (int i = 0; i < cols.length; i++) {
@@ -396,12 +422,32 @@ public class StatsOverlay extends HudModule {
             String name = r.name + (e.realName != null ? " (" + e.realName + ")" : "");
             Fnt.draw(Fnt.fit(name, 7, 108), 66, y + 0.6f, 7, r.color);
             boolean ok = e.state == StatsService.OK;
-            if (ok) right(String.valueOf(e.star), 58, y + 0.6f, starColor(e.star));
+            if (ok && game == 0) right(String.valueOf(e.star), 58, y + 0.6f, starColor(e.star));
+            if (ok && game == 2) right(String.valueOf(e.sLevel), 58, y + 0.6f, starColor(e.sLevel * 20));
             String wait = e.state == StatsService.PENDING ? "..." : "-";
             for (int i = 0; i < cols.length; i++) {
                 if (!cols[i].on()) continue;
                 String v = wait; int c = dim;
-                if (i == 4 || i == 5) { // Urchin's, with or without Hypixel's
+                if (game == 1) {
+                    if (ok) switch (i) {
+                        case 0: v = String.format("%.2f", e.dWlr()); c = ratioColor(e.dWlr(), 0.5); break;
+                        case 1: v = String.format("%.2f", e.dKdr()); c = ratioColor(e.dKdr(), 1); break;
+                        case 2: v = e.dWs < 0 ? "?" : String.valueOf(e.dWs); c = e.dWs >= 10 ? 0xFFFF5A5A : e.dWs >= 4 ? 0xFFFFD75E : 0xFFAAB2C5; break;
+                        case 3: v = e.dBestWs < 0 ? "?" : String.valueOf(e.dBestWs); c = e.dBestWs >= 30 ? 0xFFFF5A5A : e.dBestWs >= 10 ? 0xFFFFD75E : 0xFFAAB2C5; break;
+                        case 4: v = count(e.dWins); c = e.dWins >= 5000 ? 0xFFFF5A5A : e.dWins >= 1000 ? 0xFFFFD75E : 0xFFDDE3F0; break;
+                        case 5: v = count(e.dLosses); c = 0xFFDDE3F0; break;
+                        default: v = count(e.dKills); c = 0xFFDDE3F0;
+                    }
+                } else if (game == 2) {
+                    if (ok) switch (i) {
+                        case 0: v = String.format("%.2f", e.sKdr()); c = ratioColor(e.sKdr(), 1); break;
+                        case 1: v = String.format("%.2f", e.sWlr()); c = ratioColor(e.sWlr(), 0.12); break;
+                        case 2: v = count(e.sWins); c = 0xFFDDE3F0; break;
+                        case 3: v = count(e.sKills); c = 0xFFDDE3F0; break;
+                        case 4: v = count(e.sDeaths); c = 0xFFDDE3F0; break;
+                        default: v = count(e.sLosses); c = 0xFFDDE3F0;
+                    }
+                } else if (i == 4 || i == 5) { // Urchin's, with or without Hypixel's
                     double m = i == 4 ? e.mfkdr : e.mbblr;
                     if (m >= 0) { v = String.format("%.2f", m); c = ratioColor(m, i == 4 ? 1 : 0.7); } else if (ok) v = "-";
                 } else if (ok) {

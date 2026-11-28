@@ -43,6 +43,15 @@ public final class Bw {
         return b.toString().trim();
     }
 
+    /** "BED WARS", "DUELS", "SKYWARS"... - the sidebar's title in capitals, "" without one. */
+    public static String game() {
+        try {
+            ScoreObjective o = mc.theWorld == null ? null : mc.theWorld.getScoreboard().getObjectiveInDisplaySlot(1);
+            return o == null ? "" : clean(o.getDisplayName()).toUpperCase();
+        } catch (Throwable t) { return ""; }
+    }
+    public static boolean inBedWars() { return game().contains("BED WARS"); }
+
     /** The map named on the waiting-lobby sidebar, or null when it is not shown. */
     public static String mapOnSidebar() {
         for (String l : sidebar()) if (l.startsWith("Map: ") && l.length() > 5) return l.substring(5).trim();

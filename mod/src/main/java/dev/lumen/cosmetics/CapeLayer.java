@@ -76,6 +76,9 @@ public class CapeLayer implements LayerRenderer<AbstractClientPlayer> {
     public boolean shouldCombineTextures() { return false; }
 
     /** One texture per design, painted the first time somebody wears it. */
+    /** The cape's texture, for showing its face in the store. Null when it could not be made. */
+    public static ResourceLocation thumb(String id) { return texture(id); }
+
     private static ResourceLocation texture(String id) {
         if (CapeAnim.is(id)) return moving(id);
         if (textures.containsKey(id)) return textures.get(id);

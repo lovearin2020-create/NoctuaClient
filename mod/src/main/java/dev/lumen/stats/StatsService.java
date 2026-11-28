@@ -33,6 +33,20 @@ public final class StatsService {
         public volatile int state = PENDING;
         public volatile int star, finals, wins, beds, winstreak = -1;
         public volatile double fkdr, wlr, bblr;
+        /** Duels, all modes together. */
+        public volatile int dWins, dLosses, dKills, dDeaths, dWs = -1, dBestWs = -1;
+        /** SkyWars, all modes together. */
+        public volatile int sLevel, sWins, sLosses, sKills, sDeaths;
+        public double dWlr() { return dWins / (double) Math.max(1, dLosses); }
+        public double dKdr() { return dKills / (double) Math.max(1, dDeaths); }
+        public double sWlr() { return sWins / (double) Math.max(1, sLosses); }
+        public double sKdr() { return sKills / (double) Math.max(1, sDeaths); }
+        /** How dangerous they look in Duels (1) or SkyWars (2). */
+        public double threat(int game) {
+            if (game == 0) return threat();
+            double t = state == NICKED ? 1e7 : state != OK ? 0 : game == 1 ? dWlr() * dWlr() * Math.sqrt(dWins) : sLevel * sKdr() * sKdr() / 10.0;
+            return t + tagWeight(tag) * 1e8;
+        }
         /** The last month's ratios (Urchin), -1 while unknown. */
         public volatile double mfkdr = -1, mbblr = -1;
         /** The winstreak is Urchin's estimate, because Hypixel hides this player's. */
@@ -71,6 +85,8 @@ public final class StatsService {
     public static Entry sample(String name, int star, double fkdr, double wlr, double bblr, int ws, String tag) {
         Entry e = new Entry(UUID.nameUUIDFromBytes(name.getBytes()), name);
         e.star = star; e.fkdr = fkdr; e.wlr = wlr; e.bblr = bblr; e.winstreak = ws; e.tag = tag; e.state = OK;
+        e.dWins = star * 9; e.dLosses = (int) (star * 9 / Math.max(0.3, wlr)); e.dKills = star * 10; e.dDeaths = e.dLosses; e.dWs = ws; e.dBestWs = ws * 2 + 3;
+        e.sLevel = Math.max(1, star / 20); e.sWins = star * 2; e.sLosses = (int) (star * 2 / Math.max(0.1, wlr / 4)); e.sKills = star * 11; e.sDeaths = (int) (star * 11 / Math.max(0.3, fkdr / 3));
         e.mfkdr = fkdr * 1.2; e.mbblr = bblr * 1.1; e.finals = (int) (star * fkdr * 9); e.beds = (int) (star * bblr * 6); e.wins = (int) (star * wlr * 4);
         return e;
     }
@@ -153,6 +169,13 @@ public final class StatsService {
         e.finals = (int) fk; e.wins = (int) w; e.beds = (int) bb;
         e.fkdr = fk / Math.max(1, fd); e.wlr = w / Math.max(1, l); e.bblr = bb / Math.max(1, bl);
         e.winstreak = bw != null && bw.has("winstreak") ? (int) num(bw, "winstreak") : -1;
+        JsonObject du = obj(obj(player, "stats"), "Duels"), sw = obj(obj(player, "stats"), "SkyWars");
+        e.dWins = (int) num(du, "wins"); e.dLosses = (int) num(du, "losses"); e.dKills = (int) num(du, "kills"); e.dDeaths = (int) num(du, "deaths");
+        e.dWs = du != null && du.has("current_winstreak") ? (int) num(du, "current_winstreak") : -1;
+        e.dBestWs = du != null && du.has("best_overall_winstreak") ? (int) num(du, "best_overall_winstreak") : -1;
+        e.sWins = (int) num(sw, "wins"); e.sLosses = (int) num(sw, "losses"); e.sKills = (int) num(sw, "kills"); e.sDeaths = (int) num(sw, "deaths");
+        String lvl = str(sw, "levelFormatted").replaceAll("\u00a7.", "").replaceAll("[^0-9]", "");
+        e.sLevel = lvl.isEmpty() || lvl.length() > 4 ? 0 : Integer.parseInt(lvl);
         e.state = OK;
         problem = "";
         if (e.winstreak < 0 && !urchinKey.isEmpty()) { try { winstreak(e, uuid, urchinKey); } catch (Throwable ignored) {} }
