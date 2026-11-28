@@ -416,8 +416,9 @@ public class StatsOverlay extends HudModule {
             boolean urchin = !e.tag.isEmpty() && (r.mark == null || StatsService.dangerous(e.tag)); // a harmless note gives way to PIN, PARTY and MENTION
             String tag = urchin ? tagLabel(e.tag) : r.mark != null ? r.mark : nick ? "NICK" : null;
             if (tag != null) {
-                R.roundRect(5, y, 31, 8, 4, urchin ? tagColor(e.tag) : "PIN".equals(r.mark) ? 0xFF3D7BE0 : "PARTY".equals(r.mark) ? 0xFF2FA36B : "MENTION".equals(r.mark) ? 0xFFC9457F : 0xFF8E5BD9);
-                Fnt.centerB(tag, 20.5f, y + 0.6f, 5, 0xFFFFFFFF);
+                // the chip sits on the middle of the row's capitals, and its own letters on the middle of the chip
+                R.roundRect(5, y + 1.25f, 31, 8, 4, urchin ? tagColor(e.tag) : "PIN".equals(r.mark) ? 0xFF3D7BE0 : "PARTY".equals(r.mark) ? 0xFF2FA36B : "MENTION".equals(r.mark) ? 0xFFC9457F : 0xFF8E5BD9);
+                Fnt.centerB(tag, 20.5f, y + 1.6f, 5, 0xFFFFFFFF);
             }
             String name = r.name + (e.realName != null ? " (" + e.realName + ")" : "");
             Fnt.draw(Fnt.fit(name, 7, 108), 66, y + 0.6f, 7, r.color);
