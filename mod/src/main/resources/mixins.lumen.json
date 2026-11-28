@@ -8,6 +8,7 @@
     "MixinMinecraft",
     "MixinItemRenderer",
     "MixinLayerArmorBase",
+    "MixinLayerCape",
     "MixinRendererLivingEntity",
     "MixinGuiNewChat",
     "MixinGuiScreen",

@@ -31,9 +31,14 @@ public final class Online {
     public static final class Item {
         public final String id, slot, name;
         public final int price;
-        Item(String id, String slot, String name, int price) { this.id = id; this.slot = slot; this.name = name; this.price = price; }
+        /** 0 common, 1 rare, 2 epic, 3 legendary. */
+        public final int rarity;
+        Item(String id, String slot, String name, int price, int rarity) { this.id = id; this.slot = slot; this.name = name; this.price = price; this.rarity = rarity; }
+        public boolean animated() { return dev.lumen.fabric.cosmetics.CapeAnim.is(id); }
     }
 
+    public static final String[] RARITY = {"Common", "Rare", "Epic", "Legendary"};
+    public static final int[] RARITY_RGB = {0xFF9AA3B5, 0xFF4C8DFF, 0xFFA66BFF, 0xFFF5C542};
     private static final Minecraft mc = Minecraft.getInstance();
     private static final ExecutorService worker = Executors.newSingleThreadExecutor(new ThreadFactory() {
         public Thread newThread(Runnable r) { Thread t = new Thread(r, "Noctua-Online"); t.setDaemon(true); return t; }
@@ -243,7 +248,13 @@ public final class Online {
         List<Item> its = new ArrayList<Item>();
         for (JsonElement e : st.getAsJsonArray("items")) {
             JsonObject o = e.getAsJsonObject();
-            its.add(new Item(o.get("id").getAsString(), o.get("slot").getAsString(), o.get("name").getAsString(), o.get("price").getAsInt()));
+            int price = o.get("price").getAsInt();
+            // servers from before rarity existed: go by the price, as the server itself does
+            int rar = java.util.Arrays.asList("common", "rare", "epic", "legendary").indexOf(str(o, "rarity"));
+            if (rar < 0) rar = price >= 5000 ? 3 : price >= 900 ? 2 : price >= 300 ? 1 : 0;
+            String slot = o.get("slot").getAsString();
+            if (!java.util.Arrays.asList("cape", "wings", "hat", "shield").contains(slot)) continue; // 1.8.9-only extras
+            its.add(new Item(o.get("id").getAsString(), slot, o.get("name").getAsString(), price, rar));
         }
         items = its;
         Set<String> own = new HashSet<String>();

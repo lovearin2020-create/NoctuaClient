@@ -72,6 +72,9 @@ public final class CapeTextures {
         } catch (Throwable t) { m.tex = null; }
     }
 
+    /** The cape's texture, for showing its face in the store (moving capes are kept moving). Null when it could not be made. */
+    public static Identifier thumb(String id) { Identifier t = texture(id); if (CapeAnim.is(id)) repaint(id); return t; }
+
     private static Identifier texture(String id) {
         if (textures.containsKey(id)) return textures.get(id);
         if (CapeAnim.is(id)) {

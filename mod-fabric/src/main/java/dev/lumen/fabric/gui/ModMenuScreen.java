@@ -631,6 +631,7 @@ public class ModMenuScreen extends Screen {
             }
             return true;
         }
+        if (store && StorePage.key(key == ESC, key == ENTER)) return true;
         if (key == ESC) {
             if (searching) searching = false;
             else if (store) { store = false; StorePage.closed(); }

@@ -20,9 +20,20 @@ import java.util.Locale;
 /** The Store tab of the menu: cosmetics by slot, Lumen+ and how to get Rubies. Drawn inside the menu's content area. */
 final class StorePage {
     private static final Minecraft mc = Minecraft.getInstance();
-    private static final String[] TABS = {"Capes", "Wings", "Hats", "Shields", "Owned", "Noctua+", "Rubies"};
+    private static final String[] TABS = {"Capes", "Wings", "Hats", "Shields"};
     private static final String[] SLOTS = {"cape", "wings", "hat", "shield"};
-    private static final int OWNED = 4, PLUS = 5;
+    private static final String[] SLOT_NAME = {"Cape", "Wings", "Hat", "Shield"};
+    /** Tabs 0-3 are item types; Noctua+ and Rubies are pages opened from the buttons beside the balance. */
+    private static final int LAST = 3, PLUS = 6, RUBIES = 7;
+    /** Width of the detail panel on the left, and the thumbnail grid beside it. */
+    private static final int PANEL_W = 150, COLS = 4, TH = 60, TGAP = 5;
+    private static boolean ownedOnly;
+    /** The item picked in each tab (null: what you wear there, else the first). */
+    private static final String[] picked = new String[4];
+    /** The purchase window: the item being bought, and once it went through, the same item for the "purchased" view. */
+    private static Online.Item buying, bought;
+    private static long boughtAt;
+    private static boolean buySent;
     private static final int TEXT = 0xFFF2F4F8, MUTED = 0xFF8891A5, GREEN = 0xFF2FBF71, RUBY = 0xFFFF3B55, GOLD = 0xFFF5C542;
     private static final int CARD_H = 46, GAP = 6, PREVIEW_W = 98;
     private static final String COLORS = "0123456789abcdef";
@@ -81,37 +92,102 @@ final class StorePage {
         Draw.g().pose().popMatrix();
     }
 
-    static void opened() { scroll = scrollTo = 0; armed = ""; if (Online.status == Online.Status.READY) Online.refresh(); else if (Online.status != Online.Status.SIGNING_IN) Online.signIn(); }
-    static void closed() { Online.previewing = false; Online.preview.clear(); }
+    static void opened() { scroll = scrollTo = 0; armed = ""; buying = bought = null; if (Online.status == Online.Status.READY) Online.refresh(); else if (Online.status != Online.Status.SIGNING_IN) Online.signIn(); }
+    static void closed() { Online.previewing = false; Online.preview.clear(); buying = bought = null; }
+
+    /** Keys for the purchase window: Esc backs out, Enter confirms. True when the key was used. */
+    static boolean key(boolean esc, boolean enter) {
+        if (buying == null && bought == null) return false;
+        if (esc) { if (!Online.busy) buying = bought = null; }
+        else if (enter) { if (bought != null) bought = null; else confirmBuy(); }
+        return true;
+    }
     static void wheel(float step) { scrollTo += step; }
 
     private static List<Online.Item> list() {
         List<Online.Item> out = new ArrayList<Online.Item>();
-        if (tab < OWNED) { for (Online.Item i : Online.items) if (i.slot.equals(SLOTS[tab])) out.add(i); }
-        else if (tab == OWNED) {
-            // everything you own, what you are wearing first
-            for (int pass = 0; pass < 2; pass++) for (Online.Item i : Online.items) {
-                if (Online.owned.contains(i.id) && i.id.equals(Online.equipped.get(i.slot)) == (pass == 0)) out.add(i);
-            }
-        }
+        if (tab > LAST) return out;
+        for (Online.Item i : Online.items) if (i.slot.equals(SLOTS[tab]) && (!ownedOnly || Online.owned.contains(i.id))) out.add(i);
         return out;
     }
 
-    static void draw(ModMenuScreen menu, double mx, double my, int x0, int y0, int w, int h) {
-        Draw.uiB("Store", x0, y0 + 1, 13, TEXT);
-        // balance
-        String bal = Online.status == Online.Status.READY ? num(Online.rubies) : "-";
-        float bw = Draw.uiWidth(bal, 9, true) + 26;
-        Draw.roundRect(x0 + w - bw, y0, bw, 18, 6, Theme.card);
-        gem(x0 + w - bw + 7, y0 + 4.5f, 9, RUBY);
-        Draw.uiB(bal, x0 + w - bw + 19, y0 + mid(18, 9), 9, TEXT);
+    private static Online.Item item(String id) { for (Online.Item i : Online.items) if (i.id.equals(id)) return i; return null; }
 
-        float tw = (w - 6 * 3) / 7f, ty = y0 + 26;
+    /** The item the detail panel is about: the one picked, else the one worn in this slot, else the first. */
+    private static Online.Item current(List<Online.Item> list) {
+        Online.Item it = picked[tab] == null ? null : item(picked[tab]);
+        if (it != null && list.contains(it)) return it;
+        it = item(String.valueOf(Online.equipped.get(SLOTS[tab])));
+        if (it != null && list.contains(it)) return it;
+        return list.isEmpty() ? null : list.get(0);
+    }
+
+    private static void confirmBuy() {
+        if (buying == null || buySent || Online.busy || Online.rubies < buying.price) return;
+        buySent = true;
+        Online.notice = "";
+        Online.buy(buying.id);
+    }
+
+    private static void dot(float cx, float cy, float r, int color) { Draw.roundRect(cx - r, cy - r, r * 2, r * 2, r, color); }
+
+    /** A check mark about s wide, centred on (cx, cy): an L turned on its corner. */
+    private static void tick(float cx, float cy, float s, int color) {
+        float t = s * 0.2f;
+        Draw.g().pose().pushMatrix();
+        Draw.g().pose().translate(cx - s * 0.08f, cy + s * 0.12f);
+        Draw.g().pose().rotate((float) Math.toRadians(45));
+        Draw.rect(0, -s * 0.62f, t, s * 0.62f + t, color);
+        Draw.rect(-s * 0.3f, 0, s * 0.3f + t, t, color);
+        Draw.g().pose().popMatrix();
+    }
+
+    private static void pill(String text, float x, float y, int color) {
+        float w = Draw.uiWidth(text, 5, true) + 8;
+        Draw.roundRect(x, y, w, 9, 4, Draw.alpha(color, 0.18f));
+        Draw.uiB(text, x + 4, y + mid(9, 5) + 0.6f, 5, color);
+    }
+    private static float pillW(String text) { return Draw.uiWidth(text, 5, true) + 8; }
+
+    private static void price(int n, float x, float y, int size, int color) {
+        gem(x, y - size * 0.06f, size * 0.92f, RUBY);
+        Draw.uiB(num(n), x + size * 1.2f, y, size, color);
+    }
+    private static float priceW(int n, int size) { return size * 1.2f + Draw.uiWidth(num(n), size, true); }
+
+    private static void button(String label, float x, float y, float w, float h, int color, int hover, int text, double mx, double my) {
+        Draw.roundRect(x, y, w, h, 6, Draw.in(mx, my, x, y, w, h) ? hover : color);
+        Draw.track(label, x + w / 2f, y + midT(h, 7), 7, 1.2f, text);
+    }
+
+    static void draw(ModMenuScreen menu, double mx, double my, int x0, int y0, int w, int h) {
+        boolean modal = buying != null || bought != null;
+        double hx = modal ? -9999 : mx, hy = modal ? -9999 : my; // nothing under the purchase window reacts
+        Draw.uiB("Store", x0, y0 + 1, 13, TEXT);
+        // top right: Noctua+, then the balance, which is also the way to more Rubies
+        String bal = Online.status == Online.Status.READY ? num(Online.rubies) : "-";
+        float bw = Draw.uiWidth(bal, 9, true) + 38, bx = x0 + w - bw;
+        Draw.roundRect(bx, y0, bw, 18, 6, tab == RUBIES ? Draw.alpha(RUBY, 0.30f) : Draw.in(hx, hy, bx, y0, bw, 18) ? Draw.alpha(RUBY, 0.22f) : Draw.alpha(RUBY, 0.13f));
+        gem(bx + 7, y0 + 4.5f, 9, RUBY);
+        Draw.uiB(bal, bx + 19, y0 + mid(18, 9), 9, TEXT);
+        Draw.uiB("+", bx + bw - 12, y0 + mid(18, 10), 10, MUTED);
+        float pw = Draw.uiWidth("Noctua+", 8, true) + 16, pxx = bx - pw - 5;
+        Draw.roundRect(pxx, y0, pw, 18, 6, tab == PLUS ? Draw.alpha(GOLD, 0.28f) : Draw.in(hx, hy, pxx, y0, pw, 18) ? Draw.alpha(GOLD, 0.2f) : Draw.alpha(GOLD, 0.1f));
+        Draw.uiB("Noctua+", pxx + 8, y0 + mid(18, 8), 8, GOLD);
+
+        float tx = x0, ty = y0 + 26;
         for (int i = 0; i < TABS.length; i++) {
-            float tx = x0 + i * (tw + 3);
-            boolean sel = i == tab, hov = Draw.in(mx, my, tx, ty, tw, 16);
-            Draw.roundRect(tx, ty, tw, 16, 5, sel ? Draw.ACCENT : hov ? Theme.ctlHover : Theme.card);
-            Draw.uiCenter(TABS[i], tx + tw / 2f, ty + mid(16, 8), 8, sel || hov ? TEXT : i == PLUS ? GOLD : MUTED);
+            float tw = Draw.uiWidth(TABS[i], 8) + 18;
+            boolean sel = i == tab, hov = Draw.in(hx, hy, tx, ty, tw, 16);
+            if (sel || hov) Draw.roundRect(tx, ty, tw, 16, 6, sel ? Draw.ACCENT : Theme.ctlHover);
+            Draw.uiCenter(TABS[i], tx + tw / 2f, ty + mid(16, 8), 8, sel || hov ? TEXT : MUTED);
+            tx += tw + 3;
+        }
+        if (tab <= LAST) { // only what you own
+            float ow = 74, ox = x0 + w - ow;
+            Draw.ui("Owned only", ox, ty + mid(16, 7), 7, ownedOnly || Draw.in(hx, hy, ox, ty, ow, 16) ? TEXT : MUTED);
+            Draw.roundRect(ox + ow - 22, ty + 3, 22, 10, 5, ownedOnly ? Draw.ACCENT : Theme.track);
+            dot(ox + ow - (ownedOnly ? 5 : 17), ty + 8, 3.6f, 0xFFFFFFFF);
         }
         int by = y0 + 48, bh = h - 48 - 12;
         hovered = null;
@@ -128,76 +204,160 @@ final class StorePage {
             return;
         }
 
-        if (tab <= OWNED) drawItems(menu, mx, my, x0, by, w, bh);
-        else if (tab == PLUS) drawPlus(mx, my, x0, by, w, bh);
+        if (tab <= LAST) drawItems(menu, hx, hy, x0, by, w, bh, modal);
+        else if (tab == PLUS) drawPlus(hx, hy, x0, by, w, bh);
         else drawRubies(x0, by, w, bh);
 
-        if (!Online.notice.isEmpty()) Draw.text(Online.notice, x0, y0 + h - 9, Online.notice.endsWith("!") ? GREEN : 0xFFFFB86B, false);
+        if (!modal && !Online.notice.isEmpty() && !Online.notice.equals("Purchased!")) Draw.text(Online.notice, x0 + (tab <= LAST ? PANEL_W + 8 : 0), y0 + h - 9, Online.notice.endsWith("!") ? GREEN : 0xFFFFB86B, false);
+        if (modal) drawBuy(mx, my, x0, y0, w, h);
     }
 
-    private static void drawItems(ModMenuScreen menu, double mx, double my, int x0, int by, int w, int bh) {
+    /** A small picture of the item for its card: the cape's own face; other items show their initial (the big preview shows them worn). */
+    private static void thumb(Online.Item it, float x, float y, float w, float h) {
+        if (it.slot.equals("cape")) {
+            Identifier tex = dev.lumen.fabric.cosmetics.CapeTextures.thumb(it.id);
+            if (tex == null) return;
+            float th = h, tw = th * 10f / 16f;
+            Draw.g().pose().pushMatrix();
+            Draw.g().pose().translate(x + (w - tw) / 2f, y);
+            Draw.g().pose().scale(tw / 10f, th / 16f);
+            Draw.g().blit(RenderPipelines.GUI_TEXTURED, tex, 0, 0, 1f, 1f, 10, 16, 64, 32);
+            Draw.g().pose().popMatrix();
+            return;
+        }
+        int rc = Online.RARITY_RGB[it.rarity];
+        float s = Math.min(w, h);
+        Draw.roundRect(x + (w - s) / 2f, y + (h - s) / 2f, s, s, s * 0.28f, Draw.alpha(rc, 0.16f));
+        Draw.uiCenterB(it.name.substring(0, 1), x + w / 2f, y + h / 2f - s * 0.23f, s * 0.6f, Draw.alpha(rc, 0.95f));
+    }
+
+    private static void drawItems(ModMenuScreen menu, double mx, double my, int x0, int by, int w, int bh, boolean modal) {
         List<Online.Item> list = list();
-        int lw = w - PREVIEW_W - 8;
-        float cw = (lw - GAP) / 2f;
-        int rows = (list.size() + 1) / 2;
-        float max = Math.max(0, rows * (CARD_H + GAP) - GAP - bh);
+        Online.Item cur = current(list);
+        float gx = x0 + PANEL_W + 8, gw = w - PANEL_W - 8, cw = (gw - (COLS - 1) * TGAP) / COLS;
+        int rows = (list.size() + COLS - 1) / COLS;
+        float max = Math.max(0, rows * (TH + TGAP) - TGAP - bh);
         scrollTo = Math.max(0, Math.min(max, scrollTo));
         scroll = Draw.lerp(scroll, scrollTo, 0.3f);
-        if (System.currentTimeMillis() - armedAt > 3000) armed = "";
 
-        Draw.scissor(x0 - 1, by, lw + 2, bh);
+        // the grid: a picture, the name and the price; everything else is in the panel
+        Draw.scissor(gx - 1, by, gw + 2, bh);
         boolean inView = my >= by && my < by + bh;
         for (int i = 0; i < list.size(); i++) {
             Online.Item it = list.get(i);
-            float cx = x0 + (i % 2) * (cw + GAP), cy = by + (i / 2) * (CARD_H + GAP) - scroll;
-            if (cy + CARD_H < by || cy > by + bh) continue;
-            boolean hov = inView && Draw.in(mx, my, cx, cy, cw, CARD_H);
+            float cx = gx + (i % COLS) * (cw + TGAP), cy = by + (i / COLS) * (TH + TGAP) - scroll;
+            if (cy + TH < by || cy > by + bh) continue;
+            boolean hov = inView && Draw.in(mx, my, cx, cy, cw, TH), sel = it == cur;
             boolean own = Online.owned.contains(it.id), on = it.id.equals(Online.equipped.get(it.slot));
             if (hov) { hovered = it.id; hoveredSlot = it.slot; }
-            Draw.roundRect(cx, cy, cw, CARD_H, Theme.radius, hov ? Theme.cardHover : Theme.card);
-            if (on) Draw.roundOutline(cx, cy, cw, CARD_H, Theme.radius, Draw.alpha(GREEN, 0.7f));
-            Draw.uiCenter(Draw.fit(it.name, 9, cw - 8), cx + cw / 2f, cy + 6, 9, TEXT);
-            if (own) Draw.uiCenter(tab == OWNED ? Character.toUpperCase(it.slot.charAt(0)) + it.slot.substring(1) : "Owned", cx + cw / 2f, cy + 19, 7, MUTED);
-            else if (it.price == 0) Draw.uiCenter("Free", cx + cw / 2f, cy + 19, 7, GREEN);
-            else {
-                String p = num(it.price);
-                float pw = Draw.uiWidth(p, 8) + 10;
-                gem(cx + cw / 2f - pw / 2f, cy + 20.5f, 7.5f, RUBY);
-                Draw.ui(p, cx + cw / 2f - pw / 2f + 10, cy + 19, 8, Online.rubies >= it.price ? TEXT : 0xFFFF7A8A);
-            }
-            float byy = cy + CARD_H - 15;
-            boolean bhov = inView && Draw.in(mx, my, cx, byy, cw, 15);
-            String label; int color;
-            if (on) { label = "EQUIPPED"; color = bhov ? 0xFF38D283 : GREEN; }
-            else if (own) { label = "EQUIP"; color = bhov ? Theme.barHover : Theme.bar; }
-            else if (Online.rubies < it.price) { label = "NOT ENOUGH"; color = Theme.bar; }
-            else if (armed.equals(it.id)) { label = "CONFIRM?"; color = 0xFFE0A030; }
-            else { label = "BUY"; color = bhov ? 0xFF6AA0FF : Draw.ACCENT; }
-            Draw.roundRect(cx, byy, cw, 15, Theme.radius, color);
-            Draw.rect(cx, byy, cw, Math.min(7, Theme.radius + 1), color);
-            Draw.track(label, cx + cw / 2f, byy + midT(15, 7), 7, 1.2f, own && !on || label.equals("NOT ENOUGH") ? MUTED : TEXT);
+            int rc = Online.RARITY_RGB[it.rarity];
+            Draw.roundRect(cx, cy, cw, TH, 7, sel ? Draw.alpha(Draw.ACCENT, 0.16f) : hov ? Theme.cardHover : Theme.card);
+            Draw.roundRect(cx + 7, cy + TH - 2.5f, cw - 14, 2, 1, rc);
+            if (sel) Draw.roundOutline(cx, cy, cw, TH, 7, Draw.ACCENT); else if (on) Draw.roundOutline(cx, cy, cw, TH, 7, Draw.alpha(GREEN, 0.8f));
+            thumb(it, cx + 4, cy + 5, cw - 8, 30);
+            if (it.animated()) dot(cx + 8, cy + 8, 2.2f, GOLD);
+            if (own) { dot(cx + cw - 9, cy + 9, 5, on ? GREEN : 0xFF3A4254); tick(cx + cw - 9, cy + 9, 5, 0xFFFFFFFF); }
+            Draw.uiCenter(Draw.fit(it.name, 7, cw - 6), cx + cw / 2f, cy + 38.5f, 7, TEXT);
+            if (own) Draw.uiCenter(on ? "Wearing" : "Owned", cx + cw / 2f, cy + 48, 6, on ? GREEN : MUTED);
+            else if (it.price == 0) Draw.uiCenter("Free", cx + cw / 2f, cy + 48, 6, GREEN);
+            else price(it.price, cx + cw / 2f - priceW(it.price, 6) / 2f, cy + 48, 6, Online.rubies >= it.price ? TEXT : 0xFF7C8496);
         }
         Draw.endScissor();
+        if (list.isEmpty()) Draw.uiCenter(ownedOnly ? "You do not own any of these yet." : "Nothing here yet.", gx + gw / 2f, by + 30, 8, MUTED);
         if (max > 0) {
             float barH = Math.max(16, bh * bh / (bh + max));
-            Draw.roundRect(x0 + lw + 2, by + (bh - barH) * (scroll / max), 2.5f, barH, 1.2f, Theme.track);
+            Draw.roundRect(gx + gw + 2, by + (bh - barH) * (scroll / max), 2.5f, barH, 1.2f, Theme.track);
         }
 
-        // preview: your own player, wearing what you point at
-        float px = x0 + w - PREVIEW_W, pw = PREVIEW_W;
-        Draw.roundRect(px, by, pw, bh, Theme.radius, Theme.card);
-        Draw.uiCenter("PREVIEW", px + pw / 2f, by + 6, 7, MUTED);
+        // the panel: you, wearing what the mouse is on (or the picked item), and the one button
+        float px = x0, pw = PANEL_W;
+        Draw.roundRect(px, by, pw, bh, 8, Theme.card);
+        Draw.roundRect(px + 1, by + 1, pw - 2, 40, 8, Draw.alpha(Draw.ACCENT, 0.07f));
+        Online.Item show = hovered != null ? item(hovered) : cur;
+        float infoY = by + bh - 104;
         if (mc.player == null) {
-            Draw.uiCenter("Join a world", px + pw / 2f, by + bh / 2f - 8, 8, MUTED);
-            Draw.uiCenter("to see it on you", px + pw / 2f, by + bh / 2f + 2, 8, MUTED);
-        } else {
+            Draw.uiCenter("Join a world to see it on you", px + pw / 2f, by + (infoY - by) / 2f - 4, 7, MUTED);
+        } else if (show != null && !modal) { // the game draws the figure above everything, so not behind the purchase window
             Online.preview.clear();
-            String slot = hovered != null ? hoveredSlot : tab < OWNED ? SLOTS[tab] : "cape";
-            if (hovered != null) Online.preview.put(slot, hovered);
-            // turn the side that carries the item towards you: hats from the front, shields from the left, the rest from behind
+            Online.preview.put(show.slot, show.id);
+            String slot = show.slot;
             float yaw = (slot.equals("hat") ? 0f : slot.equals("shield") ? 115f : 180f) + (float) Math.sin(System.currentTimeMillis() / 1400.0) * 38f;
-            drawPlayer(menu, px + 1, by + 14, pw - 2, bh - 16, slot.equals("wings") ? 0.62f : 1f, yaw);
+            drawPlayer(menu, px + 1, by + 2, pw - 2, infoY - by - 4, slot.equals("wings") ? 0.62f : 1f, yaw);
         }
+        if (show == null) return;
+        int rc = Online.RARITY_RGB[show.rarity];
+        pill(Online.RARITY[show.rarity].toUpperCase(), px + 10, infoY, rc);
+        if (show.animated()) pill("ANIMATED", px + 14 + pillW(Online.RARITY[show.rarity].toUpperCase()), infoY, GOLD);
+        Draw.uiB(Draw.fit(show.name, 12, pw - 20), px + 10, infoY + 15, 12, TEXT);
+        boolean own = Online.owned.contains(show.id), on = show.id.equals(Online.equipped.get(show.slot));
+        Draw.ui(SLOT_NAME[java.util.Arrays.asList(SLOTS).indexOf(show.slot)] + (on ? "  -  wearing" : own ? "  -  owned" : ""), px + 10, infoY + 32, 7, on ? GREEN : MUTED);
+        if (!own) {
+            if (show.price == 0) Draw.uiB("Free", px + 10, infoY + 48, 11, GREEN);
+            else price(show.price, px + 10, infoY + 48, 11, Online.rubies >= show.price ? TEXT : 0xFFFF7A8A);
+        }
+        // the button always acts on the picked item, so it gives way to a hint while the mouse is on another card
+        if (cur == null) return;
+        if (show != cur) { Draw.uiCenter("Click the card to select it", px + pw / 2f, by + bh - 22, 7, MUTED); return; }
+        boolean cOwn = Online.owned.contains(cur.id), cOn = cur.id.equals(Online.equipped.get(cur.slot));
+        float bx = px + 10, bw = pw - 20, byy = by + bh - 30;
+        if (cOn) button("TAKE OFF", bx, byy, bw, 20, Theme.bar, Theme.barHover, TEXT, mx, my);
+        else if (cOwn) button("EQUIP", bx, byy, bw, 20, GREEN, 0xFF38D283, 0xFFFFFFFF, mx, my);
+        else if (Online.rubies < cur.price) button("NEED " + num(cur.price - Online.rubies) + " MORE", bx, byy, bw, 20, Theme.bar, Theme.barHover, MUTED, mx, my);
+        else button(cur.price == 0 ? "GET" : "BUY", bx, byy, bw, 20, Draw.ACCENT, 0xFF6AA0FF, 0xFFFFFFFF, mx, my);
+    }
+
+    /** The purchase window's place: x, y, w, h. */
+    private static float[] buyBox(int x0, int y0, int w, int h) { return new float[]{x0 + w / 2f - 118, y0 + h / 2f - 78, 236, 156}; }
+
+    private static void drawBuy(double mx, double my, int x0, int y0, int w, int h) {
+        // the purchase went through, or was refused
+        if (buying != null && buySent && !Online.busy) {
+            if (Online.owned.contains(buying.id)) { bought = buying; boughtAt = System.currentTimeMillis(); }
+            buying = null; buySent = false;
+            if (bought == null) return;
+        }
+        Draw.roundRect(x0 - 6, y0 - 6, w + 12, h + 12, 8, 0xB0060910);
+        float[] b = buyBox(x0, y0, w, h);
+        float x = b[0], y = b[1], bw = b[2], bh = b[3];
+        Online.Item it = bought != null ? bought : buying;
+        int rc = Online.RARITY_RGB[it.rarity];
+        float grow = bought != null ? Math.min(1f, (System.currentTimeMillis() - boughtAt) / 260f) : 1f;
+        Draw.roundBorder(x, y, bw, bh, 10, 0xFF12172A, Draw.alpha(bought != null ? GREEN : rc, 0.55f));
+        Draw.roundRect(x + 14, y + 16, 50, 76, 7, 0xFF0B0F1C);
+        thumb(it, x + 16, y + 20, 46, 68);
+        float tx = x + 76;
+        if (bought != null) {
+            dot(tx + 9, y + 25, 9 * grow, GREEN);
+            if (grow >= 1f) tick(tx + 9, y + 25, 9, 0xFFFFFFFF);
+            Draw.uiB("PURCHASED", tx + 23, y + 22, 8, GREEN);
+            Draw.uiB(Draw.fit(it.name, 13, bw - 90), tx, y + 42, 13, TEXT);
+            pill(Online.RARITY[it.rarity].toUpperCase(), tx, y + 60, rc);
+            Draw.ui("It is yours now.", tx, y + 77, 7, MUTED);
+            Draw.ui("Rubies left", tx, y + 91, 7, MUTED);
+            price(Online.rubies, x + bw - 14 - priceW(Online.rubies, 8), y + 90.5f, 8, TEXT);
+            float half = (bw - 28 - 6) / 2f;
+            button("CLOSE", x + 14, y + bh - 34, half, 22, Theme.bar, Theme.barHover, TEXT, mx, my);
+            boolean on = it.id.equals(Online.equipped.get(it.slot));
+            button(on ? "WEARING" : "EQUIP NOW", x + 14 + half + 6, y + bh - 34, half, 22, GREEN, 0xFF38D283, 0xFFFFFFFF, mx, my);
+            return;
+        }
+        Draw.ui("CONFIRM PURCHASE", tx, y + 18, 6, MUTED);
+        Draw.uiB(Draw.fit(it.name, 13, bw - 90), tx, y + 29, 13, TEXT);
+        pill(Online.RARITY[it.rarity].toUpperCase(), tx, y + 46, rc);
+        if (it.animated()) pill("ANIMATED", tx + 4 + pillW(Online.RARITY[it.rarity].toUpperCase()), y + 46, GOLD);
+        String[] rowsL = {"Price", "Your Rubies", "After purchase"};
+        int[] rowsV = {it.price, Online.rubies, Online.rubies - it.price};
+        for (int i = 0; i < 3; i++) {
+            float ry = y + 63.5f + i * 11;
+            Draw.ui(rowsL[i], tx, ry, 7, MUTED);
+            price(rowsV[i], x + bw - 14 - priceW(rowsV[i], 7), ry, 7, i == 2 ? GREEN : TEXT);
+        }
+        Draw.rect(tx, y + 96, bw - 90, 1, 0x22FFFFFF);
+        float half = (bw - 28 - 6) / 2f;
+        boolean wait = buySent;
+        button("CANCEL", x + 14, y + bh - 34, half, 22, Theme.bar, Theme.barHover, wait ? MUTED : TEXT, mx, my);
+        button(wait ? "BUYING..." : "BUY FOR " + num(it.price), x + 14 + half + 6, y + bh - 34, half, 22, wait ? Theme.bar : Draw.ACCENT, wait ? Theme.bar : 0xFF6AA0FF, 0xFFFFFFFF, mx, my);
+        if (!Online.notice.isEmpty() && !wait) Draw.text(Online.notice, x + 14, y + bh - 9.5f, 0xFFFFB86B, false);
     }
 
     /**
@@ -296,34 +456,50 @@ final class StorePage {
     }
 
     static void click(double mx, double my, int button, int x0, int y0, int w, int h) {
-        float tw = (w - 6 * 3) / 7f, ty = y0 + 26;
-        for (int i = 0; i < TABS.length; i++) {
-            if (Draw.in(mx, my, x0 + i * (tw + 3), ty, tw, 16)) { tab = i; scroll = scrollTo = 0; armed = ""; Online.notice = Online.status == Online.Status.READY ? "" : Online.notice; return; }
+        if (buying != null || bought != null) { // only the purchase window listens
+            float[] b = buyBox(x0, y0, w, h);
+            float half = (b[2] - 28 - 6) / 2f, byy = b[1] + b[3] - 34;
+            boolean left = Draw.in(mx, my, b[0] + 14, byy, half, 22), right = Draw.in(mx, my, b[0] + 14 + half + 6, byy, half, 22);
+            if (bought != null) {
+                if (right && !bought.id.equals(Online.equipped.get(bought.slot)) && !Online.busy) Online.equip(bought.slot, bought.id);
+                if (left || right || !Draw.in(mx, my, b[0], b[1], b[2], b[3])) bought = null;
+            } else if (!buySent) {
+                if (right) confirmBuy();
+                else if (left || !Draw.in(mx, my, b[0], b[1], b[2], b[3])) buying = null;
+            }
+            return;
         }
+        // Noctua+ and the balance, top right
+        String bal = Online.status == Online.Status.READY ? num(Online.rubies) : "-";
+        float balW = Draw.uiWidth(bal, 9, true) + 38, balX = x0 + w - balW, plusW = Draw.uiWidth("Noctua+", 8, true) + 16;
+        if (Draw.in(mx, my, balX, y0, balW, 18)) { tab = tab == RUBIES ? 0 : RUBIES; scroll = scrollTo = 0; return; }
+        if (Draw.in(mx, my, balX - plusW - 5, y0, plusW, 18)) { tab = tab == PLUS ? 0 : PLUS; scroll = scrollTo = 0; return; }
+        float tx = x0, ty = y0 + 26;
+        for (int i = 0; i < TABS.length; i++) {
+            float tw = Draw.uiWidth(TABS[i], 8) + 18;
+            if (Draw.in(mx, my, tx, ty, tw, 16)) { tab = i; scroll = scrollTo = 0; armed = ""; Online.notice = Online.status == Online.Status.READY ? "" : Online.notice; return; }
+            tx += tw + 3;
+        }
+        if (tab <= LAST && Draw.in(mx, my, x0 + w - 74, ty, 74, 16)) { ownedOnly = !ownedOnly; scroll = scrollTo = 0; return; }
         int by = y0 + 48, bh = h - 48 - 12;
         if (Online.status != Online.Status.READY) {
             if (Online.status == Online.Status.FAILED && Draw.in(mx, my, x0 + w / 2f - 40, by + bh / 2f + 14, 80, 18)) Online.signIn();
             return;
         }
         if (Online.busy) return;
-        if (tab <= OWNED) {
+        if (tab <= LAST) {
             List<Online.Item> list = list();
-            int lw = w - PREVIEW_W - 8;
-            float cw = (lw - GAP) / 2f;
-            if (my < by || my >= by + bh) return;
-            for (int i = 0; i < list.size(); i++) {
-                Online.Item it = list.get(i);
-                float cx = x0 + (i % 2) * (cw + GAP), cy = by + (i / 2) * (CARD_H + GAP) - scroll;
-                if (!Draw.in(mx, my, cx, cy + CARD_H - 15, cw, 15)) continue;
-                boolean own = Online.owned.contains(it.id), on = it.id.equals(Online.equipped.get(it.slot));
-                if (on) Online.equip(it.slot, null);
-                else if (own) Online.equip(it.slot, it.id);
-                else if (Online.rubies >= it.price) {
-                    // two clicks to spend: the first only arms the button for a few seconds
-                    if (armed.equals(it.id)) { armed = ""; Online.buy(it.id); }
-                    else { armed = it.id; armedAt = System.currentTimeMillis(); }
-                }
-                return;
+            Online.Item cur = current(list);
+            float gx = x0 + PANEL_W + 8, gw = w - PANEL_W - 8, cw = (gw - (COLS - 1) * TGAP) / COLS;
+            if (my >= by && my < by + bh) for (int i = 0; i < list.size(); i++) {
+                if (Draw.in(mx, my, gx + (i % COLS) * (cw + TGAP), by + (i / COLS) * (TH + TGAP) - scroll, cw, TH)) { picked[tab] = list.get(i).id; Online.notice = ""; return; }
+            }
+            if (cur != null && Draw.in(mx, my, x0 + 10, by + bh - 30, PANEL_W - 20, 20)) {
+                boolean own = Online.owned.contains(cur.id), on = cur.id.equals(Online.equipped.get(cur.slot));
+                if (on) Online.equip(cur.slot, null);
+                else if (own) Online.equip(cur.slot, cur.id);
+                else if (Online.rubies < cur.price) { tab = RUBIES; scroll = scrollTo = 0; }
+                else { buying = cur; bought = null; buySent = false; Online.notice = ""; }
             }
         } else if (tab == PLUS && Online.plus) {
             float y = by + 68;
